@@ -51,6 +51,7 @@ coverage/
 .nyc_output/
 
 # Temporary & Caches
+.vercel
 .eslintcache
 .stylelintcache
 .cache/

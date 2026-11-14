@@ -28,6 +28,22 @@ const FINNHUB_KEY = process.env.FINNHUB_API_KEY || 'dbrlm59r01qvp4idnnn0dbrlm59r
 app.use(cors());
 app.use(express.json());
 
+// Normalize URL prefix for Vercel Serverless Function & Express routing
+app.use((req, res, next) => {
+  if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/assets') && !req.url.startsWith('/favicon')) {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
+  next();
+});
+
+// Ensure MongoDB is connected on cold starts in serverless environments
+app.use(async (req, res, next) => {
+  if (!mongoDao.isConnected()) {
+    initMongoDB().catch(() => {});
+  }
+  next();
+});
+
 // Serve static frontend files if built
 app.use(express.static(DIST_PATH));
 
@@ -543,8 +559,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(DIST_PATH, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`[ProfitSheets Production Server] Running on http://localhost:${PORT}`);
-  console.log(`[ProfitSheets Engine] Genuine Real-Time Yahoo Finance Stock Quotes Loaded`);
-  console.log(`[ProfitSheets Engine] MongoDB Layer Initialized`);
-});
+// Only listen on local port when running as a standalone node process (not on Vercel)
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`[ProfitSheets Production Server] Running on http://localhost:${PORT}`);
+    console.log(`[ProfitSheets Engine] Genuine Real-Time Yahoo Finance Stock Quotes Loaded`);
+    console.log(`[ProfitSheets Engine] MongoDB Layer Initialized`);
+  });
+}
+
+export default app;

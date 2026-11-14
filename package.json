@@ -1,13 +1,29 @@
 {
-  "name": "profitsheets-monorepo",
+  "name": "profitsheets",
   "version": "1.0.0",
+  "type": "module",
   "description": "ProfitSheets - Investment Made Simple. Full Stack Stock Screener & Trading Platform",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
+    "build": "cd frontend && npm install && npm run build",
     "start": "node backend/index.js",
     "backend": "cd backend && npm start",
     "frontend": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "smartapi-javascript": "^1.0.27"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

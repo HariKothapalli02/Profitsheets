@@ -8,11 +8,15 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const FALLBACK_DB_PATH = path.join(__dirname, 'data', 'database.json');
+const ORIGINAL_DB_PATH = path.join(__dirname, 'data', 'database.json');
+const FALLBACK_DB_PATH = process.env.VERCEL 
+  ? path.join('/tmp', 'database.json') 
+  : ORIGINAL_DB_PATH;
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/profitsheets';
 
 let isMongoConnected = false;
+let isMongoConnecting = false;
 
 // -------------------------------------------------------------
 // MONGOOSE SCHEMAS
@@ -53,16 +57,25 @@ export const SettingModel = mongoose.model('Setting', SettingSchema);
 
 // Connect to MongoDB
 export async function initMongoDB() {
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    isMongoConnected = true;
+    return true;
+  }
+  if (isMongoConnecting) return;
+  isMongoConnecting = true;
+
   try {
     mongoose.set('strictQuery', false);
     await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 2000 // Quick timeout if local mongod is not started
+      serverSelectionTimeoutMS: 2500 // Quick timeout if local mongod is not started
     });
     isMongoConnected = true;
     console.log('[MongoDB] Connected successfully to:', MONGODB_URI);
   } catch (err) {
     console.warn('[MongoDB] MongoDB server not detected at', MONGODB_URI, '- using resilient persistent fallback layer.');
     isMongoConnected = false;
+  } finally {
+    isMongoConnecting = false;
   }
 }
 
@@ -184,21 +197,31 @@ export const mongoDao = {
   }
 };
 
+let memoryFallback = null;
+
 function readLocal() {
+  if (memoryFallback) return memoryFallback;
   try {
     if (fs.existsSync(FALLBACK_DB_PATH)) {
-      return JSON.parse(fs.readFileSync(FALLBACK_DB_PATH, 'utf-8'));
+      memoryFallback = JSON.parse(fs.readFileSync(FALLBACK_DB_PATH, 'utf-8'));
+      return memoryFallback;
+    } else if (fs.existsSync(ORIGINAL_DB_PATH)) {
+      memoryFallback = JSON.parse(fs.readFileSync(ORIGINAL_DB_PATH, 'utf-8'));
+      return memoryFallback;
     }
   } catch (e) {}
-  return { users: [], watchlists: {}, trades: [], settings: {} };
+  memoryFallback = { users: [], watchlists: {}, trades: [], settings: {} };
+  return memoryFallback;
 }
 
 function writeLocal(d) {
+  memoryFallback = d;
   try {
     const dir = path.dirname(FALLBACK_DB_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(FALLBACK_DB_PATH, JSON.stringify(d, null, 2));
   } catch (e) {
-    console.error('writeLocal error:', e);
+    // In serverless read-only environments, memoryFallback holds the data
+    console.warn('writeLocal note (in-memory preserved):', e.message);
   }
 }
