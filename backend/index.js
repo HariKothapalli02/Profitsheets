@@ -559,13 +559,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(DIST_PATH, 'index.html'));
 });
 
-// Only listen on local port when running as a standalone node process (not on Vercel)
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`[ProfitSheets Production Server] Running on http://localhost:${PORT}`);
-    console.log(`[ProfitSheets Engine] Genuine Real-Time Yahoo Finance Stock Quotes Loaded`);
-    console.log(`[ProfitSheets Engine] MongoDB Layer Initialized`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`[ProfitSheets Production Server] Running on port ${PORT}`);
+  console.log(`[ProfitSheets Engine] Genuine Real-Time Yahoo Finance Stock Quotes Loaded`);
+  console.log(`[ProfitSheets Engine] MongoDB Layer Initialized`);
+});
 
 export default app;
