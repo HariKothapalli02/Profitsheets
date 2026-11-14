@@ -51,9 +51,16 @@ const SettingSchema = new mongoose.Schema({
   value: { type: mongoose.Schema.Types.Mixed }
 });
 
+const FinancialCacheSchema = new mongoose.Schema({
+  symbol: { type: String, required: true, uppercase: true, unique: true, index: true },
+  data: { type: mongoose.Schema.Types.Mixed, required: true },
+  updatedAt: { type: Date, default: Date.now, index: true }
+});
+
 export const UserModel = mongoose.model('User', UserSchema);
 export const OrderModel = mongoose.model('Order', OrderSchema);
 export const SettingModel = mongoose.model('Setting', SettingSchema);
+export const FinancialCacheModel = mongoose.model('FinancialCache', FinancialCacheSchema);
 
 // Connect to MongoDB
 export async function initMongoDB() {
@@ -194,6 +201,67 @@ export const mongoDao = {
     data.settings[key] = value;
     writeLocal(data);
     return value;
+  },
+
+  // -------------------------------------------------------------
+  // FINANCIAL STATEMENTS & BSE DISCLOSURES DATABASE CACHE (24H TTL)
+  // -------------------------------------------------------------
+  getCachedFinancials: async (symbol, maxAgeMs = 24 * 60 * 60 * 1000) => {
+    const cleanSym = (symbol || '').trim().toUpperCase().replace('.NS', '').replace('.BO', '');
+    if (!cleanSym) return null;
+
+    if (isMongoConnected) {
+      try {
+        const cached = await FinancialCacheModel.findOne({ symbol: cleanSym });
+        if (cached && cached.updatedAt && (Date.now() - new Date(cached.updatedAt).getTime() < maxAgeMs)) {
+          return {
+            data: cached.data,
+            updatedAt: cached.updatedAt,
+            source: 'MongoDB Atlas 24H Cache'
+          };
+        }
+      } catch (err) {
+        console.warn(`[MongoDB] Error reading financials cache for ${cleanSym}:`, err.message);
+      }
+    }
+
+    const local = readLocal();
+    const entry = local.financialCache?.[cleanSym];
+    if (entry && entry.updatedAt && (Date.now() - new Date(entry.updatedAt).getTime() < maxAgeMs)) {
+      return {
+        data: entry.data,
+        updatedAt: entry.updatedAt,
+        source: 'Local Persistent Cache'
+      };
+    }
+    return null;
+  },
+
+  saveCachedFinancials: async (symbol, financialsData) => {
+    const cleanSym = (symbol || '').trim().toUpperCase().replace('.NS', '').replace('.BO', '');
+    if (!cleanSym || !financialsData) return;
+
+    if (isMongoConnected) {
+      try {
+        await FinancialCacheModel.findOneAndUpdate(
+          { symbol: cleanSym },
+          { data: financialsData, updatedAt: new Date() },
+          { upsert: true, new: true }
+        );
+        console.log(`[MongoDB] Cached financials for ${cleanSym} to MongoDB Atlas (TTL: 24h)`);
+        return;
+      } catch (err) {
+        console.warn(`[MongoDB] Error saving financials cache for ${cleanSym}:`, err.message);
+      }
+    }
+
+    const local = readLocal();
+    if (!local.financialCache) local.financialCache = {};
+    local.financialCache[cleanSym] = {
+      data: financialsData,
+      updatedAt: new Date()
+    };
+    writeLocal(local);
   }
 };
 

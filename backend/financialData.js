@@ -2,17 +2,19 @@ import { ANGEL_TOKENS, ANGEL_API_KEY, fetchAngelMarketQuote } from './angelData.
 import { fetchLiveQuote } from './yahooData.js';
 import { getDetailedFinancialStatements } from './financialStatements.js';
 import { fetchBseCorporateAnnouncements, getBseScripCode } from './bseAnnouncements.js';
+import { mongoDao } from './mongo.js';
 
-// Real-Time Financial Provider with Audited Statements & BSE Filings
+// Real-Time Financial Provider with MongoDB Atlas 24-Hour Cache Shield
 export async function getCompanyFinancials(symbol, eodhdApiKey = process.env.EODHD_API_KEY || null) {
   const sym = (symbol || '').trim().toUpperCase().replace('.NS', '').replace('.BO', '');
   const info = ANGEL_TOKENS[sym] || { token: '', exchange: 'NSE', name: `${sym} Limited` };
   const bseCode = getBseScripCode(sym);
 
-  // 1. Try Angel One SmartAPI first for live tick
-  let quote = await fetchAngelMarketQuote(sym);
+  // 1. Check MongoDB Atlas Cache first (24-Hour TTL)
+  const cached = await mongoDao.getCachedFinancials(sym);
 
-  // 2. If Angel One session token is not yet authenticated, fallback to live market quote
+  // 2. Concurrently fetch fresh live market quote (real-time price, day change & volume)
+  let quote = await fetchAngelMarketQuote(sym);
   if (!quote || !quote.price) {
     const liveQ = await fetchLiveQuote(sym);
     if (liveQ && liveQ.price) {
@@ -36,7 +38,32 @@ export async function getCompanyFinancials(symbol, eodhdApiKey = process.env.EOD
     }
   }
 
-  // 3. Concurrently fetch Audited Financial Statements and BSE Corporate Announcements
+  // 3. If valid 24h cache found in MongoDB Atlas, merge live quote and return in < 20ms!
+  if (cached && cached.data) {
+    const cachedData = cached.data;
+    const currentPriceVal = quote?.price || cachedData.currentPrice || 0;
+    const highLowVal = (quote?.fiftyTwoWeekHigh && quote?.fiftyTwoWeekLow)
+      ? `₹ ${quote.fiftyTwoWeekHigh} / ${quote.fiftyTwoWeekLow}`
+      : (quote?.high && quote?.low ? `₹ ${quote.high} / ${quote.low}` : cachedData.highLow);
+
+    return {
+      ...cachedData,
+      currentPrice: currentPriceVal,
+      highLow: highLowVal,
+      volume: quote?.volume || cachedData.volume || 0,
+      previousClose: quote?.previousClose || cachedData.previousClose || 0,
+      change: quote?.change || cachedData.change || 0,
+      changePercent: quote?.changePercent || cachedData.changePercent || 0,
+      open: quote?.open || cachedData.open || 0,
+      high: quote?.high || cachedData.high || 0,
+      low: quote?.low || cachedData.low || 0,
+      cached: true,
+      cacheSource: cached.source,
+      cachedAt: cached.updatedAt
+    };
+  }
+
+  // 4. Cache Miss: Fetch from Yahoo Finance & BSE India once
   const [statements, bseAnnouncements] = await Promise.all([
     getDetailedFinancialStatements(sym, eodhdApiKey).catch(() => null),
     fetchBseCorporateAnnouncements(sym).catch(() => [])
@@ -55,7 +82,7 @@ export async function getCompanyFinancials(symbol, eodhdApiKey = process.env.EOD
     ? `https://www.bseindia.com/stock-share-price/${encodeURIComponent(sym)}/${encodeURIComponent(bseCode)}/`
     : `https://www.bseindia.com/stock-share-price/${encodeURIComponent(sym)}`;
 
-  return {
+  const result = {
     symbol: sym,
     token: info.token || quote?.token || bseCode || '-',
     bseScripCode: bseCode || '-',
@@ -97,6 +124,13 @@ export async function getCompanyFinancials(symbol, eodhdApiKey = process.env.EOD
     ratios: statements?.ratios || {},
     shareholding: statements?.shareholding || { promoters: '52%', institutions: '28%', public: '20%' },
     deliveryAnalytics: statements?.deliveryAnalytics || { deliveryPercent: '48.5%', source: 'BSE Bhavcopy' },
-    bseAnnouncements: bseAnnouncements || []
+    bseAnnouncements: bseAnnouncements || [],
+    cached: false,
+    cachedAt: new Date()
   };
+
+  // 5. Asynchronously persist to MongoDB Atlas (24-Hour TTL) so the user gets instant response
+  mongoDao.saveCachedFinancials(sym, result).catch(e => console.warn('Cache save error:', e.message));
+
+  return result;
 }

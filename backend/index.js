@@ -253,13 +253,27 @@ app.get('/api/stocks/financials', async (req, res) => {
   }
 });
 
-// Dedicated BSE Corporate Announcements & Concalls
+// Dedicated BSE Corporate Announcements & Concalls (with MongoDB Atlas 24h cache)
 app.get('/api/stocks/bse-announcements', async (req, res) => {
   try {
     const { symbol } = req.query;
     if (!symbol) return res.status(400).json({ error: 'Symbol is required' });
+
+    // Check MongoDB Atlas cache first
+    const cached = await mongoDao.getCachedFinancials(symbol);
+    if (cached && cached.data?.bseAnnouncements?.length > 0) {
+      return res.json({
+        symbol,
+        count: cached.data.bseAnnouncements.length,
+        announcements: cached.data.bseAnnouncements,
+        cached: true,
+        source: cached.source,
+        cachedAt: cached.updatedAt
+      });
+    }
+
     const announcements = await fetchBseCorporateAnnouncements(symbol);
-    res.json({ symbol, count: announcements.length, announcements });
+    res.json({ symbol, count: announcements.length, announcements, cached: false });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch BSE announcements' });
   }
