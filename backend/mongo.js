@@ -41,9 +41,25 @@ const OrderSchema = new mongoose.Schema({
   total: { type: Number, required: true },
   exchange: { type: String, default: 'NSE' },
   orderType: { type: String, default: 'MARKET' },
+  product: { type: String, default: 'CNC' },
+  validity: { type: String, default: 'DAY' },
   broker: { type: String, default: 'Zerodha Kite' },
-  status: { type: String, default: 'EXECUTED' },
-  timestamp: { type: Date, default: Date.now }
+  status: { 
+    type: String, 
+    enum: ['PENDING', 'COMPLETE', 'EXECUTED', 'REJECTED', 'CANCELLED', 'OPEN'], 
+    default: 'PENDING',
+    index: true 
+  },
+  tag: { type: String, index: true },
+  kiteOrderId: { type: String, index: true },
+  exchangeOrderId: { type: String },
+  statusMessage: { type: String, default: '' },
+  executedPrice: { type: Number, default: null },
+  filledQuantity: { type: Number, default: 0 },
+  pendingQuantity: { type: Number, default: 0 },
+  balanceApplied: { type: Boolean, default: false },
+  timestamp: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
 const SettingSchema = new mongoose.Schema({
@@ -176,9 +192,57 @@ export const mongoDao = {
       return await o.save();
     }
     const data = readLocal();
+    if (!data.trades) data.trades = [];
     data.trades.push(orderObj);
     writeLocal(data);
     return orderObj;
+  },
+
+  findOrderById: async (id) => {
+    if (isMongoConnected) {
+      return await OrderModel.findOne({ id });
+    }
+    const data = readLocal();
+    return (data.trades || []).find(t => t.id === id) || null;
+  },
+
+  findOrderByTagOrKiteId: async (identifier) => {
+    if (!identifier) return null;
+    if (isMongoConnected) {
+      return await OrderModel.findOne({
+        $or: [
+          { id: identifier },
+          { tag: identifier },
+          { kiteOrderId: identifier }
+        ]
+      });
+    }
+    const data = readLocal();
+    return (data.trades || []).find(t => 
+      t.id === identifier || 
+      t.tag === identifier || 
+      t.kiteOrderId === identifier
+    ) || null;
+  },
+
+  updateOrder: async (id, updates) => {
+    const cleanUpdates = { ...updates, updatedAt: new Date() };
+    if (isMongoConnected) {
+      return await OrderModel.findOneAndUpdate(
+        { id },
+        { $set: cleanUpdates },
+        { new: true }
+      );
+    }
+    const data = readLocal();
+    if (!data.trades) data.trades = [];
+    const idx = data.trades.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      data.trades[idx] = { ...data.trades[idx], ...cleanUpdates };
+      writeLocal(data);
+      return data.trades[idx];
+    }
+    return null;
   },
 
   // Settings

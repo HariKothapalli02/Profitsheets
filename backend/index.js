@@ -27,19 +27,12 @@ const FINNHUB_KEY = process.env.FINNHUB_API_KEY || 'dbrlm59r01qvp4idnnn0dbrlm59r
 
 app.use(cors());
 app.use(express.json());
-
-// Normalize URL prefix for Vercel Serverless Function & Express routing
-app.use((req, res, next) => {
-  if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/assets') && !req.url.startsWith('/favicon')) {
-    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
-  }
-  next();
-});
+app.use(express.urlencoded({ extended: true }));
 
 // Ensure MongoDB is connected on cold starts in serverless environments
 app.use(async (req, res, next) => {
   if (!mongoDao.isConnected()) {
-    initMongoDB().catch(() => {});
+    initMongoDB().catch(() => { });
   }
   next();
 });
@@ -390,7 +383,7 @@ app.post('/api/stocks/batch', async (req, res) => {
   try {
     const { symbols = [] } = req.body;
     if (!Array.isArray(symbols) || symbols.length === 0) return res.json({ stocks: [] });
-    
+
     const quotes = await Promise.all(
       symbols.slice(0, 30).map(async (sym) => {
         try {
@@ -440,73 +433,274 @@ app.delete('/api/user/watchlist/:symbol', authenticateToken, async (req, res) =>
   res.json({ watchlist: current });
 });
 
+// GET all orders for the current user
 app.get('/api/user/orders', authenticateToken, async (req, res) => {
   const orders = await mongoDao.getOrders(req.user.id);
   res.json({ orders });
 });
 
-app.post('/api/user/orders', authenticateToken, async (req, res) => {
-  const { symbol, action, quantity, price, exchange = 'NSE', orderType = 'MARKET' } = req.body;
-  if (!symbol || !action || !quantity || !price) {
-    return res.status(400).json({ error: 'Incomplete order specifications' });
+// GET single order tracking detail
+app.get('/api/user/orders/:id/track', authenticateToken, async (req, res) => {
+  const order = await mongoDao.findOrderById(req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
   }
-
-  const orderObj = {
-    id: 'ord_' + Date.now() + Math.random().toString(36).substring(2, 6),
-    userId: req.user.id,
-    symbol: symbol.toUpperCase(),
-    action: action.toUpperCase(),
-    quantity: Number(quantity),
-    price: Number(price),
-    total: Number((quantity * price).toFixed(2)),
-    exchange,
-    orderType,
-    broker: 'Zerodha Kite',
-    status: 'EXECUTED',
-    timestamp: new Date()
-  };
-
-  await mongoDao.createOrder(orderObj);
-
-  // Update user virtual wallet balance
-  const user = await mongoDao.findUserById(req.user.id);
-  if (user) {
-    let currentBalance = user.walletBalance || 500000;
-    if (orderObj.action === 'BUY') {
-      currentBalance = Math.max(0, currentBalance - orderObj.total);
-    } else {
-      currentBalance += orderObj.total;
-    }
-    await mongoDao.updateUserBalance(req.user.id, Number(currentBalance.toFixed(2)));
+  if (order.userId !== req.user.id) {
+    return res.status(403).json({ error: 'Unauthorized to view this order' });
   }
-
-  res.status(201).json({ message: 'Order executed and logged successfully', order: orderObj });
+  res.json({ order });
 });
 
-// Alias for trades
-app.post('/api/user/trades', authenticateToken, async (req, res) => {
-  const { symbol, action, quantity, price, exchange = 'NSE', orderType = 'MARKET' } = req.body;
+// POST Create new order (Virtual Demo or Zerodha Kite gateway dispatch)
+app.post('/api/user/orders', authenticateToken, async (req, res) => {
+  const {
+    symbol,
+    action,
+    quantity,
+    price,
+    exchange = 'NSE',
+    orderType = 'MARKET',
+    product = 'CNC',
+    validity = 'DAY',
+    broker = 'Zerodha Kite',
+    tag,
+    isDemo = false
+  } = req.body;
+
   if (!symbol || !action || !quantity || !price) {
     return res.status(400).json({ error: 'Incomplete order specifications' });
   }
+
+  const actionUpper = String(action).toUpperCase();
+  const qty = Number(quantity);
+  const unitPrice = Number(price);
+  const totalVal = Number((qty * unitPrice).toFixed(2));
+  const isVirtualDemo = isDemo || broker.toLowerCase().includes('demo') || broker.toLowerCase().includes('virtual');
+
+  // Generate unique Kite-compliant reference tag (alphanumeric up to 20 chars)
+  const orderTag = (tag || ('PS' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase())).substring(0, 20);
+
+  // Exact lifecycle tracking:
+  // Virtual Demo orders execute immediately.
+  // Real Zerodha Kite orders start in PENDING status until confirmed complete!
+  const status = isVirtualDemo ? 'COMPLETE' : 'PENDING';
+  const balanceApplied = isVirtualDemo;
+  const statusMessage = isVirtualDemo
+    ? 'Executed instantly via Virtual Demo Trading Engine'
+    : 'Dispatched to Zerodha Kite basket. Awaiting execution confirmation.';
 
   const orderObj = {
     id: 'ord_' + Date.now() + Math.random().toString(36).substring(2, 6),
     userId: req.user.id,
     symbol: symbol.toUpperCase(),
-    action: action.toUpperCase(),
-    quantity: Number(quantity),
-    price: Number(price),
-    total: Number((quantity * price).toFixed(2)),
-    exchange,
-    orderType,
-    broker: 'Zerodha Kite',
-    status: 'EXECUTED',
-    timestamp: new Date()
+    action: actionUpper,
+    quantity: qty,
+    price: unitPrice,
+    total: totalVal,
+    exchange: exchange.toUpperCase(),
+    orderType: orderType.toUpperCase(),
+    product: product.toUpperCase(),
+    validity: validity.toUpperCase(),
+    broker: isVirtualDemo ? 'Virtual Demo' : 'Zerodha Kite',
+    status: status,
+    tag: orderTag,
+    kiteOrderId: req.body.kiteOrderId || null,
+    exchangeOrderId: null,
+    statusMessage,
+    executedPrice: isVirtualDemo ? unitPrice : null,
+    filledQuantity: isVirtualDemo ? qty : 0,
+    pendingQuantity: isVirtualDemo ? 0 : qty,
+    balanceApplied: balanceApplied,
+    timestamp: new Date(),
+    updatedAt: new Date()
   };
 
   await mongoDao.createOrder(orderObj);
-  res.status(201).json({ message: 'Trade recorded successfully', order: orderObj });
+
+  // Update user virtual wallet balance ONLY if order is confirmed/executed (Virtual Demo)
+  if (balanceApplied) {
+    const user = await mongoDao.findUserById(req.user.id);
+    if (user) {
+      let currentBalance = user.walletBalance || 500000;
+      if (orderObj.action === 'BUY') {
+        currentBalance = Math.max(0, currentBalance - orderObj.total);
+      } else {
+        currentBalance += orderObj.total;
+      }
+      await mongoDao.updateUserBalance(req.user.id, Number(currentBalance.toFixed(2)));
+    }
+  }
+
+  res.status(201).json({
+    message: isVirtualDemo
+      ? 'Demo order executed successfully'
+      : 'Kite order recorded as PENDING. Awaiting execution confirmation.',
+    order: orderObj
+  });
+});
+
+// PATCH / PUT update order status upon execution confirmation in Kite
+const handleOrderStatusUpdate = async (req, res) => {
+  const { status, kiteOrderId, executedPrice, filledQuantity, statusMessage } = req.body;
+  const order = await mongoDao.findOrderById(req.params.id);
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+  if (order.userId !== req.user.id) {
+    return res.status(403).json({ error: 'Unauthorized to modify this order' });
+  }
+
+  const validStatuses = ['PENDING', 'COMPLETE', 'EXECUTED', 'REJECTED', 'CANCELLED', 'OPEN'];
+  const reqStatus = (status || '').toUpperCase();
+  const normalizedStatus = (reqStatus === 'EXECUTED' || reqStatus === 'COMPLETE') ? 'COMPLETE' : reqStatus;
+
+  if (!validStatuses.includes(normalizedStatus)) {
+    return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+  }
+
+  const updates = {
+    status: normalizedStatus,
+    updatedAt: new Date()
+  };
+
+  if (kiteOrderId) updates.kiteOrderId = String(kiteOrderId).trim();
+  if (executedPrice !== undefined && executedPrice !== null && !isNaN(executedPrice)) {
+    updates.executedPrice = Number(executedPrice);
+  }
+  if (filledQuantity !== undefined && filledQuantity !== null && !isNaN(filledQuantity)) {
+    updates.filledQuantity = Number(filledQuantity);
+    updates.pendingQuantity = Math.max(0, order.quantity - Number(filledQuantity));
+  }
+  if (statusMessage) updates.statusMessage = String(statusMessage).trim();
+
+  // Determine final price and total when marked COMPLETE
+  if (normalizedStatus === 'COMPLETE') {
+    const effectivePrice = updates.executedPrice || order.executedPrice || order.price;
+    const effectiveQty = updates.filledQuantity !== undefined ? updates.filledQuantity : (order.filledQuantity || order.quantity);
+    updates.executedPrice = effectivePrice;
+    updates.filledQuantity = effectiveQty;
+    updates.pendingQuantity = 0;
+    updates.total = Number((effectivePrice * effectiveQty).toFixed(2));
+    if (!updates.statusMessage) updates.statusMessage = 'Executed in Kite. Execution confirmed.';
+  } else if (normalizedStatus === 'REJECTED' || normalizedStatus === 'CANCELLED') {
+    if (!updates.statusMessage) updates.statusMessage = `Order ${normalizedStatus.toLowerCase()} on Kite.`;
+  }
+
+  // Exact wallet balance synchronization:
+  const user = await mongoDao.findUserById(req.user.id);
+  let updatedWalletBalance = user?.walletBalance || 500000;
+
+  if (normalizedStatus === 'COMPLETE' && !order.balanceApplied) {
+    updates.balanceApplied = true;
+    if (user) {
+      if (order.action === 'BUY') {
+        updatedWalletBalance = Math.max(0, updatedWalletBalance - updates.total);
+      } else {
+        updatedWalletBalance = updatedWalletBalance + updates.total;
+      }
+      await mongoDao.updateUserBalance(req.user.id, Number(updatedWalletBalance.toFixed(2)));
+    }
+  } else if ((normalizedStatus === 'CANCELLED' || normalizedStatus === 'REJECTED') && order.balanceApplied) {
+    // If order was previously marked complete and is later cancelled/rejected, reverse deduction
+    updates.balanceApplied = false;
+    if (user) {
+      if (order.action === 'BUY') {
+        updatedWalletBalance = updatedWalletBalance + order.total;
+      } else {
+        updatedWalletBalance = Math.max(0, updatedWalletBalance - order.total);
+      }
+      await mongoDao.updateUserBalance(req.user.id, Number(updatedWalletBalance.toFixed(2)));
+    }
+  }
+
+  const updatedOrder = await mongoDao.updateOrder(order.id, updates);
+
+  res.json({
+    message: `Order status updated to ${normalizedStatus}`,
+    order: updatedOrder,
+    walletBalance: Number(updatedWalletBalance.toFixed(2))
+  });
+};
+
+app.patch('/api/user/orders/:id/status', authenticateToken, handleOrderStatusUpdate);
+app.put('/api/user/orders/:id/status', authenticateToken, handleOrderStatusUpdate);
+
+// Zerodha Kite Connect Postback Webhook Endpoint
+// Official Kite Connect postback receiver (receives real-time execution updates)
+app.post('/api/kite/postback', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    console.log('[Kite Postback Webhook] Received event:', JSON.stringify(payload));
+
+    const orderId = payload.order_id || payload.orderId;
+    const tag = payload.tag;
+    const rawStatus = (payload.status || '').toUpperCase();
+    const normalizedStatus = (rawStatus === 'EXECUTED' || rawStatus === 'COMPLETE') ? 'COMPLETE' : rawStatus;
+    const avgPrice = payload.average_price || payload.averagePrice || payload.price;
+    const filledQty = payload.filled_quantity !== undefined ? payload.filled_quantity : payload.quantity;
+    const pendingQty = payload.pending_quantity;
+    const statusMsg = payload.status_message || payload.status_message_raw || `Kite Postback: ${normalizedStatus}`;
+    const exchangeOrderId = payload.exchange_order_id;
+
+    if (!orderId && !tag) {
+      return res.status(400).json({ error: 'Missing order_id or tag in postback payload' });
+    }
+
+    const order = await mongoDao.findOrderByTagOrKiteId(tag || orderId);
+    if (!order) {
+      console.warn(`[Kite Postback] No order found in database matching tag: ${tag} or orderId: ${orderId}`);
+      return res.status(200).json({ status: 'ignored', message: 'Order not found in ProfitSheets' });
+    }
+
+    const updates = {
+      status: normalizedStatus,
+      kiteOrderId: orderId || order.kiteOrderId,
+      exchangeOrderId: exchangeOrderId || order.exchangeOrderId,
+      statusMessage: statusMsg,
+      updatedAt: new Date()
+    };
+
+    if (avgPrice && !isNaN(avgPrice)) updates.executedPrice = Number(avgPrice);
+    if (filledQty !== undefined && !isNaN(filledQty)) updates.filledQuantity = Number(filledQty);
+    if (pendingQty !== undefined && !isNaN(pendingQty)) updates.pendingQuantity = Number(pendingQty);
+
+    if (normalizedStatus === 'COMPLETE') {
+      const effectivePrice = updates.executedPrice || order.executedPrice || order.price;
+      const effectiveQty = updates.filledQuantity || order.quantity;
+      updates.executedPrice = effectivePrice;
+      updates.filledQuantity = effectiveQty;
+      updates.pendingQuantity = 0;
+      updates.total = Number((effectivePrice * effectiveQty).toFixed(2));
+
+      if (!order.balanceApplied) {
+        updates.balanceApplied = true;
+        const user = await mongoDao.findUserById(order.userId);
+        if (user) {
+          let currentBalance = user.walletBalance || 500000;
+          if (order.action === 'BUY') {
+            currentBalance = Math.max(0, currentBalance - updates.total);
+          } else {
+            currentBalance += updates.total;
+          }
+          await mongoDao.updateUserBalance(order.userId, Number(currentBalance.toFixed(2)));
+        }
+      }
+    }
+
+    const updated = await mongoDao.updateOrder(order.id, updates);
+    console.log(`[Kite Postback] Order ${order.id} (${order.symbol}) successfully updated to ${normalizedStatus}`);
+    return res.status(200).json({ status: 'success', message: `Order updated to ${normalizedStatus}`, order: updated });
+  } catch (err) {
+    console.error('[Kite Postback Error]:', err);
+    return res.status(500).json({ error: 'Internal error processing postback' });
+  }
+});
+
+// Alias for legacy /api/user/trades
+app.post('/api/user/trades', authenticateToken, async (req, res) => {
+  // Delegate directly to /api/user/orders
+  req.url = '/api/user/orders';
+  return app.handle(req, res);
 });
 
 app.post('/api/user/reset-balance', authenticateToken, async (req, res) => {

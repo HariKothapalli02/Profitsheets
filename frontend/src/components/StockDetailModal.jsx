@@ -108,6 +108,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
     setTradeFeedback(null);
 
     const activeKey = (kiteApiKey || 'pplopxdr29w7pa6u').trim();
+    const orderTag = ('PS' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase()).substring(0, 20);
 
     if (isIndian && triggerZerodhaPopup) {
       try {
@@ -133,7 +134,8 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
           transaction_type: tradeAction.toUpperCase(),
           order_type: orderType.toUpperCase(),
           quantity: Number(quantity),
-          product: 'CNC'
+          product: 'CNC',
+          tag: orderTag
         }];
 
         dataInput.value = JSON.stringify(basket);
@@ -147,29 +149,44 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
       }
     }
 
-    // Always record the order into MongoDB
+    // Persist order into MongoDB with exact status tracking
     try {
       if (user) {
-        await axios.post('/api/user/orders', {
+        const res = await axios.post('/api/user/orders', {
           symbol: stock.symbol,
           action: tradeAction,
           quantity: Number(quantity),
           price: currentPrice,
           exchange: exchange,
-          orderType: orderType
+          orderType: orderType,
+          broker: triggerZerodhaPopup ? 'Zerodha Kite' : 'Virtual Demo',
+          isDemo: !triggerZerodhaPopup,
+          tag: orderTag
         });
         fetchCurrentUser();
         if (onTradeComplete) onTradeComplete();
-      }
 
-      setTradeFeedback({
-        type: 'success',
-        text: `✓ ${tradeAction} order for ${quantity} share(s) of ${stock.symbol} recorded in MongoDB at ₹${currentPrice}!`
-      });
+        if (triggerZerodhaPopup) {
+          setTradeFeedback({
+            type: 'info',
+            text: `⏳ ${tradeAction} order for ${quantity} share(s) sent to Kite (Tag: ${orderTag}). Saved in database as PENDING. Confirm fill in Orders Journal!`
+          });
+        } else {
+          setTradeFeedback({
+            type: 'success',
+            text: `✓ Demo ${tradeAction} order for ${quantity} share(s) executed & saved to database at ₹${currentPrice}!`
+          });
+        }
+      } else {
+        setTradeFeedback({
+          type: 'error',
+          text: 'Sign in to save orders into database permanently.'
+        });
+      }
     } catch (err) {
       setTradeFeedback({
         type: 'error',
-        text: 'Order executed. Sign in to save into MongoDB permanently.'
+        text: err.response?.data?.error || 'Error recording order in database.'
       });
     } finally {
       setOrderSubmitting(false);

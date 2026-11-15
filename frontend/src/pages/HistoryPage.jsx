@@ -213,10 +213,25 @@ export default function HistoryPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 font-mono">
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                          EXECUTED
-                        </span>
+                        {order.status === 'PENDING' || order.status === 'OPEN' ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-amber-600 font-mono">
+                            <Clock className="w-3.5 h-3.5 mr-1 animate-pulse" />
+                            PENDING
+                          </span>
+                        ) : order.status === 'REJECTED' ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-rose-600 font-mono">
+                            ✕ REJECTED
+                          </span>
+                        ) : order.status === 'CANCELLED' ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-slate-500 font-mono">
+                            ⊘ CANCELLED
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 font-mono">
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                            EXECUTED
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
