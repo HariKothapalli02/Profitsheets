@@ -477,8 +477,8 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
   const totalVal = Number((qty * unitPrice).toFixed(2));
   const isVirtualDemo = isDemo || broker.toLowerCase().includes('demo') || broker.toLowerCase().includes('virtual');
 
-  // Generate unique Kite-compliant reference tag (alphanumeric up to 20 chars)
-  const orderTag = (tag || ('PS' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase())).substring(0, 20);
+  // Generate unique Kite-compliant reference tag (Zerodha requires max 8 chars)
+  const orderTag = (tag ? String(tag).trim().slice(0, 8) : ('P' + Date.now().toString(36).slice(-4) + Math.random().toString(36).substring(2, 5))).toUpperCase().slice(0, 8);
 
   // Exact lifecycle tracking:
   // Virtual Demo orders execute immediately.

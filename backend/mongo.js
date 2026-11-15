@@ -13,13 +13,10 @@ const FALLBACK_DB_PATH = process.env.VERCEL
   ? path.join('/tmp', 'database.json') 
   : ORIGINAL_DB_PATH;
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/profitsheets';
-
-let isMongoConnected = false;
-let isMongoConnecting = false;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://harikothapalli61_db_user:eSmVuqLM1RkJlmU2@profitsheets.qhgyvkc.mongodb.net/profitsheets?retryWrites=true&w=majority';
 
 // -------------------------------------------------------------
-// MONGOOSE SCHEMAS
+// MONGOOSE SCHEMAS & MODELS
 // -------------------------------------------------------------
 const UserSchema = new mongoose.Schema({
   id: { type: String, unique: true, index: true },
@@ -73,42 +70,53 @@ const FinancialCacheSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now, index: true }
 });
 
-export const UserModel = mongoose.model('User', UserSchema);
-export const OrderModel = mongoose.model('Order', OrderSchema);
-export const SettingModel = mongoose.model('Setting', SettingSchema);
-export const FinancialCacheModel = mongoose.model('FinancialCache', FinancialCacheSchema);
+export const UserModel = mongoose.models.User || mongoose.model('User', UserSchema);
+export const OrderModel = mongoose.models.Order || mongoose.model('Order', OrderSchema);
+export const SettingModel = mongoose.models.Setting || mongoose.model('Setting', SettingSchema);
+export const FinancialCacheModel = mongoose.models.FinancialCache || mongoose.model('FinancialCache', FinancialCacheSchema);
 
-// Connect to MongoDB
+let isMongoConnected = false;
+let mongoConnectPromise = null;
+
+// Connect to MongoDB with connection reuse and promise pooling for serverless cold starts
 export async function initMongoDB() {
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     isMongoConnected = true;
     return true;
   }
-  if (isMongoConnecting) return;
-  isMongoConnecting = true;
-
-  try {
-    mongoose.set('strictQuery', false);
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 2500 // Quick timeout if local mongod is not started
-    });
-    isMongoConnected = true;
-    console.log('[MongoDB] Connected successfully to:', MONGODB_URI);
-  } catch (err) {
-    console.warn('[MongoDB] MongoDB server not detected at', MONGODB_URI, '- using resilient persistent fallback layer.');
-    isMongoConnected = false;
-  } finally {
-    isMongoConnecting = false;
+  if (mongoConnectPromise) {
+    return await mongoConnectPromise;
   }
+
+  mongoConnectPromise = (async () => {
+    try {
+      mongoose.set('strictQuery', false);
+      await mongoose.connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 8000
+      });
+      isMongoConnected = true;
+      console.log('[MongoDB] Connected successfully to MongoDB Atlas');
+      return true;
+    } catch (err) {
+      console.warn('[MongoDB] MongoDB server connection warning:', err.message);
+      isMongoConnected = false;
+      return false;
+    } finally {
+      mongoConnectPromise = null;
+    }
+  })();
+
+  return await mongoConnectPromise;
 }
 
 // Resilient DAO that uses MongoDB if connected, or Local DB
 export const mongoDao = {
-  isConnected: () => isMongoConnected,
+  isConnected: () => Boolean(mongoose.connection && mongoose.connection.readyState === 1),
 
   // Users
   findUserByEmail: async (email) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       return await UserModel.findOne({ email: email.toLowerCase() });
     }
     const data = readLocal();
@@ -116,7 +124,8 @@ export const mongoDao = {
   },
 
   findUserById: async (id) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       return await UserModel.findOne({ id });
     }
     const data = readLocal();
@@ -124,7 +133,8 @@ export const mongoDao = {
   },
 
   createUser: async (userObj) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       const u = new UserModel(userObj);
       return await u.save();
     }
@@ -136,7 +146,8 @@ export const mongoDao = {
   },
 
   updateUserBalance: async (userId, newBalance) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       return await UserModel.updateOne({ id: userId }, { $set: { walletBalance: newBalance } });
     }
     const data = readLocal();
@@ -147,7 +158,8 @@ export const mongoDao = {
 
   // Watchlist
   getWatchlist: async (userId) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       const u = await UserModel.findOne({ id: userId });
       return u?.watchlist || ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'AAPL'];
     }
@@ -156,7 +168,8 @@ export const mongoDao = {
   },
 
   updateWatchlist: async (userId, watchlist) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       await UserModel.updateOne({ id: userId }, { $set: { watchlist } });
       return watchlist;
     }
@@ -168,7 +181,8 @@ export const mongoDao = {
 
   // Orders
   getOrders: async (userId) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       return await OrderModel.find({ userId }).sort({ timestamp: -1 });
     }
     const data = readLocal();
@@ -176,7 +190,8 @@ export const mongoDao = {
   },
 
   clearOrders: async (userId) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       await OrderModel.deleteMany({ userId });
       return true;
     }
@@ -187,7 +202,8 @@ export const mongoDao = {
   },
 
   createOrder: async (orderObj) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       const o = new OrderModel(orderObj);
       return await o.save();
     }
@@ -199,7 +215,8 @@ export const mongoDao = {
   },
 
   findOrderById: async (id) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       return await OrderModel.findOne({ id });
     }
     const data = readLocal();
@@ -208,7 +225,8 @@ export const mongoDao = {
 
   findOrderByTagOrKiteId: async (identifier) => {
     if (!identifier) return null;
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       return await OrderModel.findOne({
         $or: [
           { id: identifier },
@@ -227,7 +245,8 @@ export const mongoDao = {
 
   updateOrder: async (id, updates) => {
     const cleanUpdates = { ...updates, updatedAt: new Date() };
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       return await OrderModel.findOneAndUpdate(
         { id },
         { $set: cleanUpdates },
@@ -247,7 +266,8 @@ export const mongoDao = {
 
   // Settings
   getSetting: async (key, defaultVal = '') => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       const s = await SettingModel.findOne({ key });
       return s ? s.value : defaultVal;
     }
@@ -256,7 +276,8 @@ export const mongoDao = {
   },
 
   setSetting: async (key, value) => {
-    if (isMongoConnected) {
+    if (!mongoDao.isConnected()) await initMongoDB();
+    if (mongoDao.isConnected()) {
       await SettingModel.findOneAndUpdate({ key }, { value }, { upsert: true });
       return value;
     }

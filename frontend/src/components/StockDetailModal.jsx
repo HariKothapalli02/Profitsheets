@@ -108,7 +108,8 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
     setTradeFeedback(null);
 
     const activeKey = (kiteApiKey || 'pplopxdr29w7pa6u').trim();
-    const orderTag = ('PS' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase()).substring(0, 20);
+    // Zerodha Kite requirement: tag must be alphanumeric and max 8 characters
+    const orderTag = ('P' + Date.now().toString(36).slice(-4) + Math.random().toString(36).substring(2, 5)).toUpperCase().slice(0, 8);
 
     if (isIndian && triggerZerodhaPopup) {
       try {

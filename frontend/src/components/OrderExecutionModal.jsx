@@ -182,8 +182,8 @@ export default function OrderExecutionModal({
       return;
     }
 
-    // 2. Zerodha Kite Demat Broker Flow with Exact Lifecycle Tracking
-    const orderTag = ('PS' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase()).substring(0, 20);
+    // 2. Zerodha Kite Demat Broker Flow with Exact Lifecycle Tracking (tag must be max 8 chars for Zerodha)
+    const orderTag = ('P' + Date.now().toString(36).slice(-4) + Math.random().toString(36).substring(2, 5)).toUpperCase().slice(0, 8);
 
     try {
       // Step A: Save Order in MongoDB with status: 'PENDING'
