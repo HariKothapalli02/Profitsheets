@@ -10,7 +10,8 @@ import {
   Download, 
   Trash2,
   TrendingUp,
-  Layers
+  Layers,
+  AlertCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,47 @@ export default function HistoryPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [kiteStatusNotice, setKiteStatusNotice] = useState(null);
+
+  // Check URL query params for Kite Publisher callback (?status=cancelled or ?status=success)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const statusParam = (params.get('status') || '').toLowerCase();
+
+    if (statusParam === 'cancelled') {
+      setKiteStatusNotice({
+        type: 'cancelled',
+        title: 'Zerodha Kite Order Cancelled',
+        message: 'The basket order was cancelled on Zerodha Kite. No trades were executed and no funds were debited.'
+      });
+      autoCancelPendingOrder();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (statusParam === 'success') {
+      setKiteStatusNotice({
+        type: 'success',
+        title: 'Zerodha Kite Order Submitted',
+        message: 'Basket order placed on Zerodha Kite! Check execution details below.'
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const autoCancelPendingOrder = async () => {
+    try {
+      const res = await axios.get('/api/user/orders');
+      const orderList = res.data.orders || [];
+      const pendingOrder = orderList.find(o => o.status === 'PENDING' || o.status === 'OPEN');
+      if (pendingOrder) {
+        await axios.patch(`/api/user/orders/${pendingOrder.id}/status`, {
+          status: 'CANCELLED',
+          statusMessage: 'Order cancelled on Zerodha Kite basket screen by user'
+        });
+        await fetchOrders();
+      }
+    } catch (e) {
+      console.warn('Auto cancel error:', e);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -66,6 +108,32 @@ export default function HistoryPage() {
 
   return (
     <div className="max-w-6xl mx-auto py-8 space-y-6 font-sans">
+      {/* Zerodha Kite Callback Status Notification Banner */}
+      {kiteStatusNotice && (
+        <div className={`p-4 rounded-2xl border flex items-start justify-between shadow-xs animate-in fade-in duration-200 ${
+          kiteStatusNotice.type === 'cancelled'
+            ? 'bg-amber-50/90 border-amber-200 text-amber-900'
+            : 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
+        }`}>
+          <div className="flex items-start space-x-3">
+            {kiteStatusNotice.type === 'cancelled' ? (
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            )}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider">{kiteStatusNotice.title}</h4>
+              <p className="text-xs mt-0.5 opacity-90">{kiteStatusNotice.message}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setKiteStatusNotice(null)}
+            className="text-xs font-bold px-2 py-1 rounded-lg hover:bg-black/5 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       
       {/* 1. Header Banner */}
       <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">

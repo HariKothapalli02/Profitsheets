@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import axios from 'axios';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { initMongoDB, mongoDao } from './mongo.js';
@@ -759,12 +760,26 @@ app.post('/api/config/kite', async (req, res) => {
   });
 });
 
-// SPA Fallback
+// SPA Fallback & Kite Gateway Redirect Handler
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'Endpoint not found' });
   }
-  res.sendFile(path.join(DIST_PATH, 'index.html'));
+
+  const indexPath = path.join(DIST_PATH, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  // If running locally in development mode and accessed via localhost:5000 (e.g. from Kite redirect),
+  // forward automatically to the frontend on port 3000
+  const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+  if (req.headers.host && (req.headers.host.includes(':5000') || req.headers.host.includes('127.0.0.1:5000'))) {
+    return res.redirect(`http://localhost:3000${req.path}${queryString}`);
+  }
+
+  // Fallback production redirect
+  res.redirect(`https://profitsheets.vercel.app${req.path}${queryString}`);
 });
 
 app.listen(PORT, () => {

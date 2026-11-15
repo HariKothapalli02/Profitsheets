@@ -76,7 +76,8 @@ export default function OrderExecutionModal({
 
   const dispatchKiteBasket = (orderTag) => {
     const rawKey = (kiteApiKey || '').trim();
-    const activeKey = (rawKey && rawKey !== 'pplopxdr29w7pa6u' && rawKey.length > 5) ? rawKey : 'kitefront';
+    // Default to the registered Zerodha Kite App Key (or custom configured key)
+    const activeKey = rawKey || 'pplopxdr29w7pa6u';
 
     try {
       const form = document.createElement('form');
@@ -89,6 +90,13 @@ export default function OrderExecutionModal({
       apiKeyInput.name = 'api_key';
       apiKeyInput.value = activeKey;
       form.appendChild(apiKeyInput);
+
+      // Explicitly provide the return redirect_url so Kite redirects back on Cancel or Success
+      const redirectInput = document.createElement('input');
+      redirectInput.type = 'hidden';
+      redirectInput.name = 'redirect_url';
+      redirectInput.value = `${window.location.origin}/orders`;
+      form.appendChild(redirectInput);
 
       const dataInput = document.createElement('input');
       dataInput.type = 'hidden';

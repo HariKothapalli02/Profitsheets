@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Key, CheckCircle, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
+import { X, Key, CheckCircle, ExternalLink, ShieldCheck, Zap, Copy, Check } from 'lucide-react';
 import { useKite } from '../context/KiteContext';
 
 export default function KiteSettingsModal() {
@@ -7,6 +7,7 @@ export default function KiteSettingsModal() {
   const [inputKey, setInputKey] = useState(kiteApiKey || '');
   const [statusMsg, setStatusMsg] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [copiedRedirect, setCopiedRedirect] = useState(false);
 
   if (!isModalOpen) return null;
 
@@ -77,6 +78,42 @@ export default function KiteSettingsModal() {
               <p className="text-[11px] text-slate-400 mt-1">
                 Obtained from <a href="https://developers.kite.trade/" target="_blank" rel="noreferrer" className="text-violet-600 font-bold hover:underline">Zerodha Developer Console</a>.
               </p>
+            </div>
+
+            {/* Redirect URL Helper for Kite Developer Console */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5">
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                Developer Console Redirect URL
+              </label>
+              <p className="text-[11px] text-slate-500 leading-normal">
+                Paste this URL into your Zerodha Developer Console under <strong className="text-slate-800">Redirect URL</strong> so Zerodha returns to your app when orders are completed or cancelled:
+              </p>
+              <div className="flex items-center space-x-2 pt-1">
+                <code className="flex-1 bg-white border border-slate-200 px-3 py-2 rounded-xl text-[11px] font-mono text-indigo-700 truncate select-all">
+                  {`${window.location.origin}/orders`}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/orders`);
+                    setCopiedRedirect(true);
+                    setTimeout(() => setCopiedRedirect(false), 2000);
+                  }}
+                  className="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1"
+                >
+                  {copiedRedirect ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy URL</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {statusMsg && (

@@ -124,6 +124,12 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
         apiKeyInput.value = activeKey;
         form.appendChild(apiKeyInput);
 
+        const redirectInput = document.createElement('input');
+        redirectInput.type = 'hidden';
+        redirectInput.name = 'redirect_url';
+        redirectInput.value = `${window.location.origin}/orders`;
+        form.appendChild(redirectInput);
+
         const dataInput = document.createElement('input');
         dataInput.type = 'hidden';
         dataInput.name = 'data';

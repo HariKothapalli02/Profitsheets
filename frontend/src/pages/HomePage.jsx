@@ -27,7 +27,30 @@ export default function HomePage() {
   const [recentSearches, setRecentSearches] = useState([]);
   const [boughtStocks, setBoughtStocks] = useState([]);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [kiteStatusNotice, setKiteStatusNotice] = useState(null);
   const searchRef = useRef(null);
+
+  // Check URL query params for Kite Publisher callback (?status=cancelled or ?status=success)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const statusParam = (params.get('status') || '').toLowerCase();
+
+    if (statusParam === 'cancelled') {
+      setKiteStatusNotice({
+        type: 'cancelled',
+        title: 'Zerodha Kite Order Cancelled',
+        message: 'The basket order was cancelled on Zerodha Kite. No trades were executed and no funds were debited.'
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (statusParam === 'success') {
+      setKiteStatusNotice({
+        type: 'success',
+        title: 'Zerodha Kite Order Placed',
+        message: 'Basket order placed on Zerodha Kite! Check your holdings below.'
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   const sampleCompanies = [
     { label: 'Lalithaa', symbol: 'LALITHAA' },
@@ -176,6 +199,28 @@ export default function HomePage() {
 
   return (
     <div className="min-h-[75vh] flex flex-col items-center justify-center px-4 py-12">
+      {/* Zerodha Kite Callback Status Notification Banner */}
+      {kiteStatusNotice && (
+        <div className={`w-full max-w-2xl mb-6 p-4 rounded-2xl border flex items-start justify-between shadow-xs animate-in fade-in duration-200 ${
+          kiteStatusNotice.type === 'cancelled'
+            ? 'bg-amber-50/90 border-amber-200 text-amber-900'
+            : 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
+        }`}>
+          <div className="flex items-start space-x-3">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider">{kiteStatusNotice.title}</h4>
+              <p className="text-xs mt-0.5 opacity-90">{kiteStatusNotice.message}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setKiteStatusNotice(null)}
+            className="text-xs font-bold px-2 py-1 rounded-lg hover:bg-black/5 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Brand Hero */}
       <div className="w-full max-w-2xl text-center space-y-6">
         {/* ProfitSheets Brand Logo with 3 green bars */}

@@ -39,7 +39,7 @@ export default function App() {
           <Route path="/company/:symbol" element={<CompanyPage />} />
 
           {/* 5. Trade Orders & Journal */}
-          <Route path="/orders" element={<HistoryPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
 
           {/* Fallback to homepage */}
           <Route path="*" element={<Navigate to="/" replace />} />
