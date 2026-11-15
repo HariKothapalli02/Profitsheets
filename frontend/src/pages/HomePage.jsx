@@ -8,19 +8,25 @@ import {
   Clock, 
   History, 
   X,
-  TrendingUp 
+  TrendingUp,
+  Briefcase,
+  ArrowRight
 } from 'lucide-react';
 import axios from 'axios';
 import { getRecentSearches, addRecentSearch, clearRecentSearches } from '../utils/recentSearches';
+import { useAuth } from '../context/AuthContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [boughtStocks, setBoughtStocks] = useState([]);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const searchRef = useRef(null);
 
   const sampleCompanies = [
@@ -46,6 +52,61 @@ export default function HomePage() {
   useEffect(() => {
     setRecentSearches(getRecentSearches());
   }, []);
+
+  // Fetch bought stocks only after login
+  useEffect(() => {
+    if (user) {
+      fetchBoughtStocks();
+    } else {
+      setBoughtStocks([]);
+      setPendingOrdersCount(0);
+    }
+  }, [user]);
+
+  const fetchBoughtStocks = async () => {
+    try {
+      const res = await axios.get('/api/user/orders');
+      const orders = res.data.orders || [];
+
+      // Count pending orders
+      const pending = orders.filter(o => o.status === 'PENDING' || o.status === 'OPEN').length;
+      setPendingOrdersCount(pending);
+
+      // Aggregate active holdings from executed buy/sell orders
+      const holdingsMap = {};
+      orders
+        .filter(o => o.status === 'COMPLETE' || o.status === 'EXECUTED')
+        .forEach(o => {
+          const sym = o.symbol.toUpperCase();
+          if (!holdingsMap[sym]) {
+            holdingsMap[sym] = {
+              symbol: sym,
+              shares: 0,
+              totalInvested: 0,
+              lastPrice: o.executedPrice || o.price,
+              exchange: o.exchange || 'NSE'
+            };
+          }
+          if (o.action === 'BUY') {
+            holdingsMap[sym].shares += Number(o.quantity || 0);
+            holdingsMap[sym].totalInvested += Number(o.total || (o.quantity * (o.executedPrice || o.price)));
+          } else if (o.action === 'SELL') {
+            holdingsMap[sym].shares = Math.max(0, holdingsMap[sym].shares - Number(o.quantity || 0));
+          }
+        });
+
+      const activeHoldings = Object.values(holdingsMap)
+        .filter(h => h.shares > 0)
+        .map(h => ({
+          ...h,
+          avgPrice: h.shares > 0 ? (h.totalInvested / h.shares).toFixed(2) : h.lastPrice
+        }));
+
+      setBoughtStocks(activeHoldings);
+    } catch (err) {
+      console.warn('Failed to fetch user bought stocks:', err.message);
+    }
+  };
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -229,6 +290,54 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* 0. Bought Stocks / Active Portfolio - Only visible after login when user has bought stocks */}
+        {user && (boughtStocks.length > 0 || pendingOrdersCount > 0) && (
+          <div className="pt-2 text-center animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="p-3 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl shadow-xs max-w-xl mx-auto text-left">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-emerald-100/90">
+                <div className="flex items-center gap-1.5 text-xs font-black text-emerald-950 uppercase tracking-wider font-mono">
+                  <Briefcase className="w-3.5 h-3.5 text-[#00965e]" />
+                  <span>Your Bought Stocks ({boughtStocks.length})</span>
+                  {pendingOrdersCount > 0 && (
+                    <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 animate-pulse font-sans">
+                      {pendingOrdersCount} pending in Kite
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => navigate('/orders')}
+                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-0.5 font-sans"
+                >
+                  <span>View Journal</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {boughtStocks.map((stock, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectCompany(stock.symbol)}
+                    className="group px-3 py-1.5 rounded-xl bg-white border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-800 shadow-2xs transition-all flex items-center gap-2 text-xs"
+                    title={`Open full report for ${stock.symbol}`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#00965e] group-hover:scale-125 transition-transform"></span>
+                    <span className="font-mono font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
+                      {stock.symbol}
+                    </span>
+                    <span className="text-[11px] font-bold font-mono text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                      {stock.shares} sh
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      ₹{Number(stock.avgPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 1. "Recently searched of mine" section */}
         {recentSearches.length > 0 && (
