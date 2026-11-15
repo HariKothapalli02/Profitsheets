@@ -179,6 +179,58 @@ app.get('/api/stocks/popular', async (req, res) => {
   }
 });
 
+// Benchmark Indian Indices (NIFTY 50, SENSEX, BANK NIFTY, NIFTY IT)
+let indicesCache = { data: null, timestamp: 0 };
+const INDICES_CONFIG = [
+  { name: 'NIFTY 50', displaySymbol: 'NIFTY 50', yahoo: '^NSEI', exchange: 'NSE' },
+  { name: 'S&P BSE SENSEX', displaySymbol: 'SENSEX', yahoo: '^BSESN', exchange: 'BSE' },
+  { name: 'NIFTY BANK', displaySymbol: 'BANK NIFTY', yahoo: '^NSEBANK', exchange: 'NSE' },
+  { name: 'NIFTY IT', displaySymbol: 'NIFTY IT', yahoo: '^CNXIT', exchange: 'NSE' }
+];
+
+app.get('/api/stocks/indices', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (indicesCache.data && (now - indicesCache.timestamp < 15000)) {
+      return res.json(indicesCache.data);
+    }
+
+    const data = await Promise.all(
+      INDICES_CONFIG.map(async (idx) => {
+        try {
+          const q = await fetchLiveQuote(idx.yahoo);
+          return {
+            name: idx.name,
+            symbol: idx.displaySymbol,
+            exchange: idx.exchange,
+            price: q.price,
+            change: q.change,
+            changePercent: q.changePercent,
+            high: q.high,
+            low: q.low,
+            previousClose: q.previousClose
+          };
+        } catch (e) {
+          return {
+            name: idx.name,
+            symbol: idx.displaySymbol,
+            exchange: idx.exchange,
+            price: 0,
+            change: 0,
+            changePercent: 0
+          };
+        }
+      })
+    );
+
+    indicesCache = { data, timestamp: now };
+    res.json(data);
+  } catch (err) {
+    console.error('Indices fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch market indices' });
+  }
+});
+
 // Single Live Quote
 app.get('/api/stocks/quote', async (req, res) => {
   const { symbol } = req.query;
