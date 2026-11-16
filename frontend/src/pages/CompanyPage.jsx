@@ -482,7 +482,7 @@ export default function CompanyPage() {
         {activeTab === 'pnl' && (
           <div className="space-y-3 animate-in fade-in duration-150">
             <div className="flex items-center justify-between text-xs">
-              <h3 className="font-bold text-slate-900">Annual Profit & Loss Statement (10-Year Progression)</h3>
+              <h3 className="font-bold text-slate-900">Annual Profit & Loss Statement (3-Year Progression)</h3>
               <span className="text-slate-500 text-[11px]">Audited Annual Filings</span>
             </div>
 

@@ -421,7 +421,7 @@ export default function HomePage() {
 
         {/* Tagline */}
         <p className="text-sm sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
-          Search over 4,000+ Indian public companies for 10-year financials, concalls, BSE announcements, and 1-click Kite demat order execution.
+          Search over 4,000+ Indian public companies for 3-year audited financials, concalls, BSE announcements, and 1-click Kite demat order execution.
         </p>
 
         {/* Search Bar Container */}
@@ -861,7 +861,7 @@ export default function HomePage() {
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white">10-Year Audited Financials</h4>
+              <h4 className="text-sm font-bold text-white">3-Year Audited Financials</h4>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                 Detailed balance sheets, P&L, quarterly results, con-call transcripts, and BSE corporate announcements.
               </p>

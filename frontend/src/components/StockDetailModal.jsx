@@ -658,9 +658,9 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                   <BarChart3 className="w-4 h-4 text-[#0284c7]" />
-                  10-Year Annual Profit & Loss Statement (Figures in Rs. Crores)
+                  3-Year Annual Profit & Loss Statement (Figures in Rs. Crores)
                 </h3>
-                <span className="text-[11px] text-slate-400 font-mono">Past 10 Years to TTM</span>
+                <span className="text-[11px] text-slate-400 font-mono">Past 3 Years to TTM</span>
               </div>
               {loadingFundamentals ? (
                 <div className="p-12 text-center text-xs text-slate-400 font-mono animate-pulse">Loading historical P&L statements...</div>

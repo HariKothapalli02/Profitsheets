@@ -153,7 +153,7 @@ export async function fetchLiveCandles(symbol, timeframe = '1M') {
   }
 
   let interval = '1d';
-  let range = '1y';
+  let range = '3y';
 
   const tf = (timeframe || '').toUpperCase();
   if (tf === '1D') {
@@ -172,17 +172,11 @@ export async function fetchLiveCandles(symbol, timeframe = '1M') {
     interval = '1d';
     range = '1y';
   } else if (tf === '3Y' || tf === '3YR') {
-    interval = '1wk';
+    interval = '1d';
     range = '3y';
-  } else if (tf === '5Y' || tf === '5YR') {
-    interval = '1wk';
-    range = '5y';
-  } else if (tf === '10Y' || tf === '10YR') {
-    interval = '1mo';
-    range = '10y';
-  } else if (tf === 'MAX') {
-    interval = '1mo';
-    range = 'max';
+  } else {
+    interval = '1d';
+    range = '3y';
   }
 
   try {

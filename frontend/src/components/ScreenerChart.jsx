@@ -42,7 +42,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
   const [isHovering, setIsHovering] = useState(false);
   const svgRef = useRef(null);
 
-  const timeframes = ['1M', '6M', '1Yr', '3Yr', '5Yr', '10Yr', 'Max'];
+  const timeframes = ['1M', '6M', '1Yr', '3Yr'];
 
   // Close "More" dropdown when clicking outside
   useEffect(() => {
@@ -68,9 +68,6 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       else if (timeframe === '6M') tfParam = '6M';
       else if (timeframe === '1Yr') tfParam = '1Y';
       else if (timeframe === '3Yr') tfParam = '3Y';
-      else if (timeframe === '5Yr') tfParam = '5Y';
-      else if (timeframe === '10Yr') tfParam = '10Y';
-      else if (timeframe === 'Max') tfParam = 'MAX';
 
       const res = await axios.get(`/api/stocks/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${tfParam}`);
       if (res.data?.candles && res.data.candles.length > 0) {
@@ -345,16 +342,43 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       { label: formatVolume(maxVol), y: padT + plotH - maxBarH }
     ];
 
-    // 7. X-Axis Date Ticks
+    // 7. X-Axis Date Ticks with Multi-Year Date Awareness
     const xTicks = [];
     const dateInterval = Math.max(1, Math.floor(pts.length / 8));
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     for (let i = 0; i < pts.length; i += dateInterval) {
       const d = new Date(pts[i].time * 1000);
+      let label = '';
+      if (timeframe === '3Yr') {
+        // Multi-year display: e.g. "Dec '23", "Jun '24", "Dec '24", "Jun '25", "Dec '25", "Nov '26"
+        label = `${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`;
+      } else if (timeframe === '1Yr') {
+        // 1-Year display showing date and year: e.g. "1 Dec '25", "1 Mar '26"
+        label = `${d.getDate()} ${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`;
+      } else {
+        // 1M and 6M: e.g. "12 Oct", "26 Oct"
+        label = `${d.getDate()} ${monthNames[d.getMonth()]}`;
+      }
+
       xTicks.push({
         x: pts[i].x,
-        label: `${d.getDate()} ${monthNames[d.getMonth()]}`
+        label
       });
+    }
+
+    // Ensure the last date is clearly pinned at the far right
+    if (pts.length > 0) {
+      const lastPt = pts[pts.length - 1];
+      const d = new Date(lastPt.time * 1000);
+      const lastLabel = (timeframe === '3Yr' || timeframe === '1Yr')
+        ? `${d.getDate()} ${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`
+        : `${d.getDate()} ${monthNames[d.getMonth()]}`;
+      
+      if (xTicks.length === 0 || Math.abs(xTicks[xTicks.length - 1].x - lastPt.x) > 55) {
+        xTicks.push({ x: lastPt.x, label: lastLabel });
+      } else if (xTicks.length > 0) {
+        xTicks[xTicks.length - 1] = { x: lastPt.x, label: lastLabel };
+      }
     }
 
     // High and Low Points of the Period
@@ -441,9 +465,9 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
   const isPositive = Number(chartData.pctReturn) >= 0;
 
-  // Format date for active inspected point (e.g. 07 SEP 26)
+  // Format date for active inspected point (e.g. 07 SEP 2026)
   const activeDateStr = activePt
-    ? new Date(activePt.time * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase()
+    ? new Date(activePt.time * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
     : '';
 
   // Calculate return "From Here" to latest price
