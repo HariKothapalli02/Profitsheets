@@ -376,7 +376,7 @@ export default function CompanyPage() {
 
       {/* 4. REAL INTERACTIVE SCREENER CANDLESTICK & VOLUME CHART */}
       <div id="chart-section">
-        <ScreenerChart symbol={data.symbol} currentPrice={data.currentPrice} />
+        <ScreenerChart symbol={data.symbol} currentPrice={data.currentPrice} company={data} />
       </div>
 
       {/* 5. AUDITED FINANCIAL STATEMENTS & OFFICIAL BSE FILINGS (SCREENER COMPREHENSIVE SUITE) */}
