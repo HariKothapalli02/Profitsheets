@@ -50,12 +50,15 @@ export default function AuthModal({ isOpen, onClose }) {
             <X className="w-4 h-4" />
           </button>
           
-          <div className="flex items-center space-x-2.5 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-white" />
+          <div className="flex items-center justify-between mb-3">
+            <div className="bg-white/95 px-3 py-1.5 rounded-xl shadow-xs">
+              <img 
+                src="/logo.png" 
+                alt="ProfitSheets" 
+                className="h-6 w-auto object-contain"
+              />
             </div>
-            <span className="text-lg font-black tracking-tight">Profit<span className="text-violet-200">Sheets</span></span>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-white/20 text-white border border-white/20">
               Secure Auth
             </span>
           </div>

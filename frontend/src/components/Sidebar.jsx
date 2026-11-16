@@ -87,22 +87,14 @@ export function Sidebar({
         <div>
           <div className="flex items-center justify-between px-2 pt-2 pb-5 border-b border-slate-100">
             <div 
-              onClick={() => handleNav('/markets')}
-              className="flex items-center space-x-3 cursor-pointer group"
+              onClick={() => handleNav('/')}
+              className="flex items-center cursor-pointer group"
             >
-              {/* ProfitSheets Signature Logo Icon */}
-              <div className="w-10 h-10 rounded-xl bg-[#0c324e] relative flex items-center justify-center shadow-md border border-[#14466b] overflow-hidden group-hover:scale-105 transition-transform">
-                <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-[#28C76F] rounded-bl-lg"></div>
-                <span className="text-white font-black text-xl font-sans tracking-tight">P</span>
-              </div>
-              <div>
-                <span className="text-lg font-black tracking-tight text-[#0c324e] font-sans">
-                  Profit<span className="text-[#28C76F]">Sheets</span>
-                </span>
-                <p className="text-[10px] font-semibold text-[#cf2e2e] tracking-tight">
-                  investments made simple
-                </p>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="ProfitSheets - investments made simple" 
+                className="h-9 w-auto object-contain hover:opacity-95 transition-opacity"
+              />
             </div>
 
             {/* Close Button on Mobile */}

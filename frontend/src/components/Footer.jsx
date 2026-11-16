@@ -9,20 +9,14 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-start justify-between gap-8">
           
           {/* Left Brand */}
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-[#10b981] to-[#047857] flex items-center justify-center text-white font-black text-xs font-sans">
-                P
-              </div>
-              <span className="text-xl font-black text-slate-800 tracking-tight font-sans">
-                Profit<span className="text-[#10b981]">Sheets</span>
-              </span>
-              <div className="flex items-end space-x-0.5 h-4">
-                <span className="w-1 h-2 bg-[#10b981] rounded-xs"></span>
-                <span className="w-1 h-3 bg-[#10b981] rounded-xs"></span>
-                <span className="w-1 h-4 bg-[#10b981] rounded-xs"></span>
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Link to="/" className="inline-block">
+              <img 
+                src="/logo.png" 
+                alt="ProfitSheets - investments made simple" 
+                className="h-8 sm:h-9 w-auto object-contain opacity-95 hover:opacity-100 transition-opacity"
+              />
+            </Link>
             <p className="text-xs text-slate-500 font-medium">
               Stock analysis and screening tool for investors in India.
             </p>

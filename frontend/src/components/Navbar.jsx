@@ -109,18 +109,12 @@ export default function Navbar() {
           {/* Left: Logo & Desktop Navigation */}
           <div className="flex items-center space-x-6 lg:space-x-8">
             {/* ProfitSheets Logo */}
-            <Link to="/" className="flex items-center space-x-2 group shrink-0">
-              <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-2xs font-sans">
-                P
-              </div>
-              <span className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight font-sans">
-                Profit<span className="text-emerald-600">Sheets</span>
-              </span>
-              <div className="flex items-end space-x-0.5 h-4">
-                <span className="w-1 h-2 bg-emerald-500 rounded-xs"></span>
-                <span className="w-1 h-3 bg-emerald-500 rounded-xs"></span>
-                <span className="w-1 h-4 bg-emerald-500 rounded-xs"></span>
-              </div>
+            <Link to="/" className="flex items-center group shrink-0 py-1">
+              <img 
+                src="/logo.png" 
+                alt="ProfitSheets - investments made simple" 
+                className="h-8 sm:h-9 w-auto object-contain hover:opacity-95 transition-opacity"
+              />
             </Link>
 
             {/* Desktop Nav Menu Items */}

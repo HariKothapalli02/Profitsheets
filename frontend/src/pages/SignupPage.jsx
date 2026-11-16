@@ -72,8 +72,12 @@ export default function SignupPage() {
       <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-lg p-8 sm:p-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-[#00965e] mb-1">
-            <Sparkles className="w-7 h-7" />
+          <div className="flex justify-center pb-1">
+            <img 
+              src="/logo.png" 
+              alt="ProfitSheets - investments made simple" 
+              className="h-10 w-auto object-contain"
+            />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Create Free Account</h1>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">

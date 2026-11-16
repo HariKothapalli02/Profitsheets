@@ -405,18 +405,12 @@ export default function HomePage() {
         </div>
 
         {/* Brand Logo & Name */}
-        <div className="flex items-center justify-center space-x-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/20 text-white font-black text-2xl font-sans">
-            P
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight font-sans">
-            Profit<span className="text-emerald-600">Sheets</span>
-          </h1>
-          <div className="flex items-end space-x-1 h-9">
-            <span className="w-1.5 h-3 bg-emerald-500 rounded-xs"></span>
-            <span className="w-1.5 h-5 bg-emerald-500 rounded-xs"></span>
-            <span className="w-1.5 h-7 bg-emerald-500 rounded-xs"></span>
-          </div>
+        <div className="flex items-center justify-center py-2">
+          <img 
+            src="/logo.png" 
+            alt="ProfitSheets - investments made simple" 
+            className="h-14 sm:h-16 md:h-20 w-auto object-contain hover:scale-[1.02] transition-transform duration-200"
+          />
         </div>
 
         {/* Tagline */}

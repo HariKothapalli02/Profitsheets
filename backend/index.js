@@ -818,14 +818,24 @@ app.get('*', (req, res) => {
     return res.status(404).json({ error: 'Endpoint not found' });
   }
 
+  const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+
+  // 1. Kite Publisher Callback / Cancellation redirect
+  if (req.query.action === 'basket' || req.query.status) {
+    const isDevHost = req.headers.host && (req.headers.host.includes(':5000') || req.headers.host.includes('127.0.0.1'));
+    if (isDevHost) {
+      return res.redirect(`http://localhost:3000/orders${queryString}`);
+    }
+    return res.redirect(`/orders${queryString}`);
+  }
+
   const indexPath = path.join(DIST_PATH, 'index.html');
   if (fs.existsSync(indexPath)) {
     return res.sendFile(indexPath);
   }
 
-  // If running locally in development mode and accessed via localhost:5000 (e.g. from Kite redirect),
+  // If running locally in development mode and accessed via localhost:5000,
   // forward automatically to the frontend on port 3000
-  const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
   if (req.headers.host && (req.headers.host.includes(':5000') || req.headers.host.includes('127.0.0.1:5000'))) {
     return res.redirect(`http://localhost:3000${req.path}${queryString}`);
   }
