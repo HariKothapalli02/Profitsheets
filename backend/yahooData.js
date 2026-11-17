@@ -17,26 +17,26 @@ const CANDLE_TTL = 60 * 1000;
 
 // Curated Indian Bluechips & Global Leaders
 export const POPULAR_SYMBOLS = [
-  { symbol: 'LALITHAA', yahoo: 'LALITHAA.NS', name: 'Lalithaa Jewellery Mart Ltd.', exchange: 'BSE/NSE', sector: 'Retail & Jewellery' },
-  { symbol: 'RELIANCE', yahoo: 'RELIANCE.NS', name: 'Reliance Industries Ltd.', exchange: 'NSE', sector: 'Energy & Retail' },
-  { symbol: 'TCS', yahoo: 'TCS.NS', name: 'Tata Consultancy Services', exchange: 'NSE', sector: 'Information Technology' },
-  { symbol: 'INFY', yahoo: 'INFY.NS', name: 'Infosys Limited', exchange: 'NSE', sector: 'Information Technology' },
-  { symbol: 'HDFCBANK', yahoo: 'HDFCBANK.NS', name: 'HDFC Bank Ltd.', exchange: 'NSE', sector: 'Banking & Finance' },
-  { symbol: 'ICICIBANK', yahoo: 'ICICIBANK.NS', name: 'ICICI Bank Ltd.', exchange: 'NSE', sector: 'Banking & Finance' },
-  { symbol: 'TATAMOTORS', yahoo: 'TATAMOTORS.NS', name: 'Tata Motors Ltd.', exchange: 'NSE', sector: 'Automobile' },
-  { symbol: 'SBIN', yahoo: 'SBIN.NS', name: 'State Bank of India', exchange: 'NSE', sector: 'Banking & Finance' },
-  { symbol: 'ITC', yahoo: 'ITC.NS', name: 'ITC Limited', exchange: 'NSE', sector: 'FMCG & Consumer' },
-  { symbol: 'BHARTIARTL', yahoo: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd.', exchange: 'NSE', sector: 'Telecom' },
-  { symbol: 'LT', yahoo: 'LT.NS', name: 'Larsen & Toubro Ltd.', exchange: 'NSE', sector: 'Engineering & Infra' },
-  { symbol: 'TATASTEEL', yahoo: 'TATASTEEL.NS', name: 'Tata Steel Limited', exchange: 'NSE', sector: 'Metals & Mining' },
-  { symbol: 'BAJFINANCE', yahoo: 'BAJFINANCE.NS', name: 'Bajaj Finance Ltd.', exchange: 'NSE', sector: 'Banking & Finance' },
-  { symbol: 'ASIANPAINT', yahoo: 'ASIANPAINT.NS', name: 'Asian Paints Ltd.', exchange: 'NSE', sector: 'Consumer Goods' },
-  { symbol: 'MARUTI', yahoo: 'MARUTI.NS', name: 'Maruti Suzuki India Ltd.', exchange: 'NSE', sector: 'Automobile' },
-  { symbol: 'HINDUNILVR', yahoo: 'HINDUNILVR.NS', name: 'Hindustan Unilever Ltd.', exchange: 'NSE', sector: 'FMCG & Consumer' },
-  { symbol: 'AAPL', yahoo: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', sector: 'Consumer Tech' },
-  { symbol: 'NVDA', yahoo: 'NVDA', name: 'NVIDIA Corporation', exchange: 'NASDAQ', sector: 'Semiconductors & AI' },
-  { symbol: 'MSFT', yahoo: 'MSFT', name: 'Microsoft Corporation', exchange: 'NASDAQ', sector: 'Software & Cloud' },
-  { symbol: 'TSLA', yahoo: 'TSLA', name: 'Tesla, Inc.', exchange: 'NASDAQ', sector: 'Automotive & Clean Energy' }
+  { symbol: 'LALITHAA', yahoo: 'LALITHAA.NS', name: 'Lalithaa Jewellery Mart Ltd.', exchange: 'BSE/NSE', sector: 'Retail & Jewellery', shares: 555160000 },
+  { symbol: 'RELIANCE', yahoo: 'RELIANCE.NS', name: 'Reliance Industries Ltd.', exchange: 'NSE', sector: 'Energy & Retail', shares: 13532472634 },
+  { symbol: 'TCS', yahoo: 'TCS.NS', name: 'Tata Consultancy Services', exchange: 'NSE', sector: 'Information Technology', shares: 3618087456 },
+  { symbol: 'INFY', yahoo: 'INFY.NS', name: 'Infosys Limited', exchange: 'NSE', sector: 'Information Technology', shares: 4151978240 },
+  { symbol: 'HDFCBANK', yahoo: 'HDFCBANK.NS', name: 'HDFC Bank Ltd.', exchange: 'NSE', sector: 'Banking & Finance', shares: 7624100000 },
+  { symbol: 'ICICIBANK', yahoo: 'ICICIBANK.NS', name: 'ICICI Bank Ltd.', exchange: 'NSE', sector: 'Banking & Finance', shares: 7032100000 },
+  { symbol: 'TATAMOTORS', yahoo: 'TATAMOTORS.NS', name: 'Tata Motors Ltd.', exchange: 'NSE', sector: 'Automobile', shares: 3679800000 },
+  { symbol: 'SBIN', yahoo: 'SBIN.NS', name: 'State Bank of India', exchange: 'NSE', sector: 'Banking & Finance', shares: 8924600000 },
+  { symbol: 'ITC', yahoo: 'ITC.NS', name: 'ITC Limited', exchange: 'NSE', sector: 'FMCG & Consumer', shares: 12489000000 },
+  { symbol: 'BHARTIARTL', yahoo: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd.', exchange: 'NSE', sector: 'Telecom', shares: 5712000000 },
+  { symbol: 'LT', yahoo: 'LT.NS', name: 'Larsen & Toubro Ltd.', exchange: 'NSE', sector: 'Engineering & Infra', shares: 1374500000 },
+  { symbol: 'TATASTEEL', yahoo: 'TATASTEEL.NS', name: 'Tata Steel Limited', exchange: 'NSE', sector: 'Metals & Mining', shares: 12483500000 },
+  { symbol: 'BAJFINANCE', yahoo: 'BAJFINANCE.NS', name: 'Bajaj Finance Ltd.', exchange: 'NSE', sector: 'Banking & Finance', shares: 619000000 },
+  { symbol: 'ASIANPAINT', yahoo: 'ASIANPAINT.NS', name: 'Asian Paints Ltd.', exchange: 'NSE', sector: 'Consumer Goods', shares: 959200000 },
+  { symbol: 'MARUTI', yahoo: 'MARUTI.NS', name: 'Maruti Suzuki India Ltd.', exchange: 'NSE', sector: 'Automobile', shares: 314400000 },
+  { symbol: 'HINDUNILVR', yahoo: 'HINDUNILVR.NS', name: 'Hindustan Unilever Ltd.', exchange: 'NSE', sector: 'FMCG & Consumer', shares: 2349600000 },
+  { symbol: 'AAPL', yahoo: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', sector: 'Consumer Tech', shares: 15115800000 },
+  { symbol: 'NVDA', yahoo: 'NVDA', name: 'NVIDIA Corporation', exchange: 'NASDAQ', sector: 'Semiconductors & AI', shares: 24150000000 },
+  { symbol: 'MSFT', yahoo: 'MSFT', name: 'Microsoft Corporation', exchange: 'NASDAQ', sector: 'Software & Cloud', shares: 7430000000 },
+  { symbol: 'TSLA', yahoo: 'TSLA', name: 'Tesla, Inc.', exchange: 'NASDAQ', sector: 'Automotive & Clean Energy', shares: 3210000000 }
 ];
 
 export function resolveYahooSymbol(symbol) {
@@ -97,6 +97,10 @@ export async function fetchLiveQuote(symbol) {
     const yesterdayHigh = Number((yestIdx >= 0 && quoteData.high?.[yestIdx] != null ? quoteData.high[yestIdx] : previousClose).toFixed(2));
     const yesterdayLow = Number((yestIdx >= 0 && quoteData.low?.[yestIdx] != null ? quoteData.low[yestIdx] : previousClose).toFixed(2));
 
+    const match = POPULAR_SYMBOLS.find(p => p.symbol === cleanSym || p.yahoo === yahooSymbol);
+    const sharesCount = match?.shares || null;
+    const calcMarketCap = meta.marketCap || (sharesCount && price > 0 ? Math.round(price * sharesCount) : 0);
+
     const quote = {
       symbol: cleanSym,
       yahooSymbol,
@@ -138,7 +142,7 @@ export async function fetchLiveQuote(symbol) {
       volume: meta.regularMarketVolume || 0,
       fiftyTwoWeekHigh: Number((meta.fiftyTwoWeekHigh || price * 1.2).toFixed(2)),
       fiftyTwoWeekLow: Number((meta.fiftyTwoWeekLow || price * 0.8).toFixed(2)),
-      marketCap: meta.marketCap || 0,
+      marketCap: calcMarketCap,
       timestamp: meta.regularMarketTime ? meta.regularMarketTime * 1000 : Date.now()
     };
 
@@ -158,6 +162,9 @@ export async function fetchLiveQuote(symbol) {
           const chg2 = Number((price2 - prev2).toFixed(2));
           const pct2 = prev2 > 0 ? Number(((chg2 / prev2) * 100).toFixed(2)) : 0;
 
+          const match2 = POPULAR_SYMBOLS.find(p => p.symbol === bareSym);
+          const calcMarketCap2 = meta2.marketCap || (match2?.shares && price2 > 0 ? Math.round(price2 * match2.shares) : 0);
+
           const quote2 = {
             symbol: bareSym,
             yahooSymbol: bareSym,
@@ -175,7 +182,7 @@ export async function fetchLiveQuote(symbol) {
             volume: meta2.regularMarketVolume || 0,
             fiftyTwoWeekHigh: Number((meta2.fiftyTwoWeekHigh || price2 * 1.2).toFixed(2)),
             fiftyTwoWeekLow: Number((meta2.fiftyTwoWeekLow || price2 * 0.8).toFixed(2)),
-            marketCap: meta2.marketCap || 0,
+            marketCap: calcMarketCap2,
             timestamp: meta2.regularMarketTime ? meta2.regularMarketTime * 1000 : Date.now()
           };
           cache.quotes.set(yahooSymbol, { data: quote2, ts: Date.now() });
@@ -277,14 +284,18 @@ export async function searchStocks(query) {
     s.symbol.toLowerCase().includes(q) || 
     s.name.toLowerCase().includes(q) ||
     s.sector.toLowerCase().includes(q)
-  ).map(s => ({
-    symbol: s.symbol,
-    yahooSymbol: s.yahoo,
-    name: s.name,
-    exchange: s.exchange,
-    sector: s.sector,
-    currency: s.exchange === 'NSE' ? 'INR' : 'USD'
-  }));
+  ).map(s => {
+    const isIndian = s.exchange.includes('NSE') || s.exchange.includes('BSE') || s.yahoo.endsWith('.NS');
+    return {
+      symbol: s.symbol,
+      yahooSymbol: s.yahoo,
+      name: s.name,
+      exchange: s.exchange,
+      sector: s.sector,
+      currency: isIndian ? 'INR' : 'USD',
+      currencySymbol: isIndian ? '₹' : '$'
+    };
+  });
 
   try {
     const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0`;
@@ -301,7 +312,8 @@ export async function searchStocks(query) {
           yahooSymbol: item.symbol,
           name: item.shortname || item.longname || cleanSymbol,
           exchange: isIndian ? (item.symbol.endsWith('.BO') ? 'BSE' : 'NSE') : (item.exchDisp || item.exchange || 'US'),
-          currency: isIndian ? 'INR' : 'USD'
+          currency: isIndian ? 'INR' : 'USD',
+          currencySymbol: isIndian ? '₹' : '$'
         };
       });
 

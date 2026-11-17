@@ -51,6 +51,10 @@ export default function OrderExecutionModal({
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  const isIndian = stock?.currency === 'INR' || stock?.exchange === 'NSE' || stock?.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock?.symbol?.toUpperCase()));
+  const currencySymbol = stock?.currencySymbol || (isIndian ? '₹' : '$');
+  const isUSD = currencySymbol === '$';
+
   // Order tracking stage state (for Kite orders)
   const [trackedOrder, setTrackedOrder] = useState(null);
   const [copiedTag, setCopiedTag] = useState(false);
@@ -407,7 +411,7 @@ export default function OrderExecutionModal({
 
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
-                        Executed Price (₹)
+                        Executed Price ({currencySymbol})
                       </label>
                       <input
                         type="number"
@@ -629,7 +633,7 @@ export default function OrderExecutionModal({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    PRICE (₹) {orderType === 'MARKET' ? '(AT MARKET)' : ''}
+                    PRICE ({currencySymbol}) {orderType === 'MARKET' ? '(AT MARKET)' : ''}
                   </label>
                   <input
                     type="number"
@@ -682,7 +686,7 @@ export default function OrderExecutionModal({
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Estimated Order Value</span>
                   <span className="text-sm font-black font-mono text-slate-900">
-                    ₹{Number(estimatedOrderValue).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {currencySymbol}{Number(estimatedOrderValue).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 {executionMode === 'DEMO' ? (
@@ -756,7 +760,7 @@ export default function OrderExecutionModal({
                     <>
                       <Zap className="w-4 h-4 fill-white" />
                       <span>
-                        {submitting ? 'Executing Demo Trade...' : `Execute Demo ${action} (₹${Number(estimatedOrderValue).toLocaleString('en-IN')})`}
+                        {submitting ? 'Executing Demo Trade...' : `Execute Demo ${action} (${currencySymbol}${Number(estimatedOrderValue).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}
                       </span>
                     </>
                   ) : (

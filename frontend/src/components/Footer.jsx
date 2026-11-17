@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sun } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -22,31 +21,33 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Right Links matching Screenshot 1 */}
+          {/* Right Links matching Screener Layout */}
           <div className="flex flex-wrap items-start gap-12 sm:gap-16 text-xs">
             <div className="space-y-2">
               <h4 className="font-bold text-slate-800">Product</h4>
               <ul className="space-y-1.5 text-slate-500">
-                <li className="hover:text-slate-800 cursor-pointer">Premium</li>
-                <li className="hover:text-slate-800 cursor-pointer">What's new?</li>
-                <li className="hover:text-slate-800 cursor-pointer">Learn</li>
+                <li>
+                  <Link to="/" className="hover:text-slate-800 transition-colors">Screens</Link>
+                </li>
+                <li>
+                  <Link to="/watchlist" className="hover:text-slate-800 transition-colors">Watchlist</Link>
+                </li>
+                <li>
+                  <Link to="/orders" className="hover:text-slate-800 transition-colors">Paper Trading</Link>
+                </li>
               </ul>
             </div>
 
             <div className="space-y-2">
               <h4 className="font-bold text-slate-800">Team</h4>
               <ul className="space-y-1.5 text-slate-500">
-                <li className="hover:text-slate-800 cursor-pointer">About us</li>
-                <li className="hover:text-slate-800 cursor-pointer">Support</li>
+                <li>
+                  <Link to="/about" className="hover:text-slate-800 transition-colors">About us</Link>
+                </li>
+                <li>
+                  <Link to="/support" className="hover:text-slate-800 transition-colors">Support</Link>
+                </li>
               </ul>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="font-bold text-slate-800">Theme</h4>
-              <div className="flex items-center space-x-1.5 text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
-                <Sun className="w-3.5 h-3.5 text-amber-500" />
-                <span className="font-medium text-[11px]">Light</span>
-              </div>
             </div>
           </div>
 

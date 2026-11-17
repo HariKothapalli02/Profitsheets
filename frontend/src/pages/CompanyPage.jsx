@@ -189,6 +189,10 @@ export default function CompanyPage() {
     return true;
   });
 
+  const isIndian = data?.currency === 'INR' || data?.exchange === 'NSE' || data?.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(data?.symbol?.toUpperCase()));
+  const currencySymbol = data?.currencySymbol || (isIndian ? '₹' : '$');
+  const isUSD = currencySymbol === '$';
+
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-16 font-sans">
       
@@ -201,7 +205,7 @@ export default function CompanyPage() {
           {/* Left Column: Identity & Badges */}
           <div className="flex items-start space-x-3.5 min-w-0">
             <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center font-black text-base shrink-0 tracking-tight select-none">
-              {data.symbol === 'RELIANCE' ? '₹' : data.symbol.substring(0, 2)}
+              {data.symbol === 'RELIANCE' ? '₹' : (data.symbol === 'NVDA' ? '$' : data.symbol.substring(0, 2))}
             </div>
 
             <div className="space-y-1.5 min-w-0 flex-1">
@@ -226,7 +230,7 @@ export default function CompanyPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  NSE LIVE
+                  {isIndian ? 'NSE LIVE' : `${data.exchange || 'NASDAQ'} LIVE`}
                 </span>
                 <span className="text-slate-300">•</span>
                 <span className="font-mono text-slate-700 font-semibold">{data.exchange || 'NSE'}</span>
@@ -248,7 +252,7 @@ export default function CompanyPage() {
             <div className="text-left md:text-right">
               <div className="flex items-baseline md:justify-end gap-2 font-mono">
                 <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
-                  ₹{Number(data.currentPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {currencySymbol}{Number(data.currentPrice).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className={`inline-flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 rounded-md tabular-nums ${
                   isPositive 
@@ -260,7 +264,7 @@ export default function CompanyPage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                Prev Close: ₹{Number(data.previousClose || 0).toFixed(2)}
+                Prev Close: {currencySymbol}{Number(data.previousClose || 0).toFixed(2)}
               </p>
             </div>
 
@@ -312,20 +316,24 @@ export default function CompanyPage() {
 
           <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Book Value</span>
-            <p className="font-mono font-bold text-slate-900 text-sm sm:text-base tabular-nums">{data.bookValue || '₹ 112.50'}</p>
+            <p className="font-mono font-bold text-slate-900 text-sm sm:text-base tabular-nums">
+              {data.bookValue ? data.bookValue.replace(/₹/g, currencySymbol) : `${currencySymbol} 112.50`}
+            </p>
             <span className="text-[10px] text-slate-400 font-mono block">Per Share Net Worth</span>
           </div>
 
           <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">52-Week Range</span>
-            <p className="font-mono font-semibold text-slate-800 text-xs sm:text-sm tabular-nums">{data.highLow || '-'}</p>
+            <p className="font-mono font-semibold text-slate-800 text-xs sm:text-sm tabular-nums">
+              {data.highLow ? data.highLow.replace(/₹/g, currencySymbol) : '-'}
+            </p>
             <span className="text-[10px] text-slate-400 font-mono block">Yearly bounds</span>
           </div>
 
           <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1 col-span-2 sm:col-span-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Delivery %</span>
             <p className="font-mono font-bold text-emerald-700 text-sm sm:text-base tabular-nums">{data.deliveryAnalytics?.deliveryPercent || '48.5%'}</p>
-            <span className="text-[10px] text-slate-400 font-mono block">BSE Bhavcopy</span>
+            <span className="text-[10px] text-slate-400 font-mono block">{isIndian ? 'BSE Bhavcopy' : 'Market Volume'}</span>
           </div>
         </div>
 
@@ -400,7 +408,7 @@ export default function CompanyPage() {
                         : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}>
                       {isGapUp ? <ArrowUpRight className="w-3.5 h-3.5" /> : isGapDown ? <ArrowDownRight className="w-3.5 h-3.5" /> : null}
-                      {isGapUp ? `+₹${gap.toFixed(2)} (+${gapPct}%) Gap Up` : isGapDown ? `-₹${Math.abs(gap).toFixed(2)} (${gapPct}%) Gap Down` : 'Flat Open (0.00%)'}
+                      {isGapUp ? `+${currencySymbol}${gap.toFixed(2)} (+${gapPct}%) Gap Up` : isGapDown ? `-${currencySymbol}${Math.abs(gap).toFixed(2)} (${gapPct}%) Gap Down` : 'Flat Open (0.00%)'}
                     </span>
                   </div>
                 )}
@@ -443,19 +451,19 @@ export default function CompanyPage() {
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
                       <span className="font-mono font-bold text-slate-800 text-xs sm:text-sm block mt-0.5 tabular-nums">
-                        ₹{tOpen.toFixed(2)}
+                        {currencySymbol}{tOpen.toFixed(2)}
                       </span>
                     </div>
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
                       <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
                       <span className="font-mono font-bold text-emerald-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
-                        ₹{tHigh.toFixed(2)}
+                        {currencySymbol}{tHigh.toFixed(2)}
                       </span>
                     </div>
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
                       <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
                       <span className="font-mono font-bold text-rose-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
-                        ₹{tLow.toFixed(2)}
+                        {currencySymbol}{tLow.toFixed(2)}
                       </span>
                     </div>
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
@@ -463,7 +471,7 @@ export default function CompanyPage() {
                       <span className={`font-mono font-black text-xs sm:text-sm block mt-0.5 tabular-nums ${
                         tStats.isBullish ? 'text-emerald-600' : 'text-rose-600'
                       }`}>
-                        ₹{tClose.toFixed(2)}
+                        {currencySymbol}{tClose.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -471,11 +479,11 @@ export default function CompanyPage() {
                   {/* Visual Range Bar (Wick + Body) */}
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                      <span>Low: ₹{tLow.toFixed(2)}</span>
+                      <span>Low: {currencySymbol}{tLow.toFixed(2)}</span>
                       <span className="font-sans font-semibold text-slate-400">
-                        Spread: ₹{tStats.range.toFixed(2)} ({tStats.rangePct}%)
+                        Spread: {currencySymbol}{tStats.range.toFixed(2)} ({tStats.rangePct}%)
                       </span>
-                      <span>High: ₹{tHigh.toFixed(2)}</span>
+                      <span>High: {currencySymbol}{tHigh.toFixed(2)}</span>
                     </div>
 
                     <div className="relative h-2.5 bg-slate-200/80 rounded-full overflow-visible">
@@ -493,7 +501,7 @@ export default function CompanyPage() {
                       <div 
                         className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-slate-900 border-2 border-white shadow-md z-10"
                         style={{ left: `${tStats.pinPos}%` }}
-                        title={`LTP: ₹${tClose.toFixed(2)}`}
+                        title={`LTP: ${currencySymbol}${tClose.toFixed(2)}`}
                       />
                     </div>
 
@@ -535,25 +543,25 @@ export default function CompanyPage() {
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
                       <span className="font-mono font-bold text-slate-800 text-xs sm:text-sm block mt-0.5 tabular-nums">
-                        ₹{yOpen.toFixed(2)}
+                        {currencySymbol}{yOpen.toFixed(2)}
                       </span>
                     </div>
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
                       <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
                       <span className="font-mono font-bold text-emerald-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
-                        ₹{yHigh.toFixed(2)}
+                        {currencySymbol}{yHigh.toFixed(2)}
                       </span>
                     </div>
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
                       <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
                       <span className="font-mono font-bold text-rose-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
-                        ₹{yLow.toFixed(2)}
+                        {currencySymbol}{yLow.toFixed(2)}
                       </span>
                     </div>
                     <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
                       <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Close</span>
                       <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm block mt-0.5 tabular-nums">
-                        ₹{yClose.toFixed(2)}
+                        {currencySymbol}{yClose.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -561,11 +569,11 @@ export default function CompanyPage() {
                   {/* Visual Range Bar (Wick + Body) */}
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                      <span>Low: ₹{yLow.toFixed(2)}</span>
+                      <span>Low: {currencySymbol}{yLow.toFixed(2)}</span>
                       <span className="font-sans font-semibold text-slate-400">
-                        Spread: ₹{yStats.range.toFixed(2)} ({yStats.rangePct}%)
+                        Spread: {currencySymbol}{yStats.range.toFixed(2)} ({yStats.rangePct}%)
                       </span>
-                      <span>High: ₹{yHigh.toFixed(2)}</span>
+                      <span>High: {currencySymbol}{yHigh.toFixed(2)}</span>
                     </div>
 
                     <div className="relative h-2.5 bg-slate-200/80 rounded-full overflow-visible">
@@ -583,7 +591,7 @@ export default function CompanyPage() {
                       <div 
                         className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-slate-700 border-2 border-white shadow-md z-10"
                         style={{ left: `${yStats.pinPos}%` }}
-                        title={`Settled Close: ₹${yClose.toFixed(2)}`}
+                        title={`Settled Close: ${currencySymbol}${yClose.toFixed(2)}`}
                       />
                     </div>
 
@@ -650,7 +658,7 @@ export default function CompanyPage() {
 
       {/* 4. REAL INTERACTIVE SCREENER CANDLESTICK & VOLUME CHART */}
       <div id="chart-section">
-        <ScreenerChart symbol={data.symbol} currentPrice={data.currentPrice} company={data} />
+        <ScreenerChart symbol={data.symbol} currentPrice={data.currentPrice} company={data} currencySymbol={currencySymbol} />
       </div>
 
       {/* 5. AUDITED FINANCIAL STATEMENTS & OFFICIAL BSE FILINGS (SCREENER COMPREHENSIVE SUITE) */}
@@ -683,7 +691,7 @@ export default function CompanyPage() {
           </div>
 
           <span className="text-[11px] font-mono font-medium text-slate-400 text-right shrink-0">
-            Currency: ₹ in Crores
+            Currency: {currencySymbol} in {isUSD ? 'Millions' : 'Crores'}
           </span>
         </div>
 
@@ -740,8 +748,12 @@ export default function CompanyPage() {
                       {data.quarters.map((q, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-slate-900 font-extrabold">{q.netProfit}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-700 font-mono">
-                      <td className="py-2 px-3.5 font-sans font-semibold">EPS in Rs</td>
-                      {data.quarters.map((q, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-bold">{q.eps}</td>)}
+                      <td className="py-2 px-3.5 font-sans font-semibold">EPS in {currencySymbol}</td>
+                      {data.quarters.map((q, i) => (
+                        <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-bold">
+                          {typeof q.eps === 'string' ? q.eps.replace(/₹/g, currencySymbol) : `${currencySymbol} ${q.eps}`}
+                        </td>
+                      ))}
                     </tr>
                   </tbody>
                 </table>
@@ -793,8 +805,12 @@ export default function CompanyPage() {
                       {data.profitAndLoss.map((p, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-slate-900 font-extrabold">{p.netProfit}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-700 font-mono">
-                      <td className="py-2 px-3.5 font-sans font-semibold">EPS in Rs</td>
-                      {data.profitAndLoss.map((p, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-bold">{p.eps}</td>)}
+                      <td className="py-2 px-3.5 font-sans font-semibold">EPS in {currencySymbol}</td>
+                      {data.profitAndLoss.map((p, i) => (
+                        <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-bold">
+                          {typeof p.eps === 'string' ? p.eps.replace(/₹/g, currencySymbol) : `${currencySymbol} ${p.eps}`}
+                        </td>
+                      ))}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
                       <td className="py-2 px-3.5">Dividend Payout %</td>
@@ -1157,36 +1173,41 @@ export default function CompanyPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {news.map((item, idx) => (
-              <a
-                key={idx}
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                className="group p-4 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-white transition-all flex flex-col justify-between space-y-3"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                    <span className="text-emerald-700 font-bold">{item.source}</span>
-                    <span className="flex items-center gap-1 font-mono">
-                      <Clock className="w-3 h-3" />
-                      {item.dateStr}
-                    </span>
+            {news.map((item, idx) => {
+              const safeUrl = (item.url && !item.url.includes('news.google.com'))
+                ? item.url
+                : `https://www.google.com/search?q=${encodeURIComponent((item.title || item.headline || '') + ' ' + (item.source || ''))}`;
+              return (
+                <a
+                  key={idx}
+                  href={safeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group p-4 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50/50 hover:bg-white transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+                      <span className="text-emerald-700 font-bold">{item.source}</span>
+                      <span className="flex items-center gap-1 font-mono">
+                        <Clock className="w-3 h-3" />
+                        {item.dateStr}
+                      </span>
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-800 group-hover:text-emerald-700 transition-colors leading-snug line-clamp-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 line-clamp-3 leading-relaxed">
+                      {item.summary}
+                    </p>
                   </div>
-                  <h3 className="text-xs font-bold text-slate-800 group-hover:text-emerald-700 transition-colors leading-snug line-clamp-2">
-                    {item.title}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 line-clamp-3 leading-relaxed">
-                    {item.summary}
-                  </p>
-                </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-emerald-700 group-hover:underline">
-                  <span>Read full filing</span>
-                  <ExternalLink className="w-3 h-3" />
-                </div>
-              </a>
-            ))}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-emerald-700 group-hover:underline">
+                    <span>Read full story</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </div>
+                </a>
+              );
+            })}
           </div>
         )}
       </div>

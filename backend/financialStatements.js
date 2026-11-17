@@ -9,7 +9,7 @@ let cachedCrumb = null;
 let cachedCookie = null;
 let lastCrumbFetch = 0;
 
-async function getYahooCrumbSession() {
+export async function getYahooCrumbSession() {
   if (cachedCrumb && cachedCookie && (Date.now() - lastCrumbFetch < 60 * 60 * 1000)) {
     return { crumb: cachedCrumb, cookie: cachedCookie };
   }
@@ -62,6 +62,9 @@ function toPercent(val) {
 // Main Financial Statements Provider
 export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null) {
   const cleanSym = (symbol || '').trim().toUpperCase().replace('.NS', '').replace('.BO', '');
+  const isIndian = !['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(cleanSym) && !cleanSym.endsWith('.US');
+  const currencySymbol = isIndian ? '₹' : '$';
+
   const cached = cache.get(cleanSym);
   if (cached && (Date.now() - cached.ts < CACHE_TTL)) {
     return cached.data;
@@ -87,7 +90,7 @@ export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null)
 
     let modulesData = null;
     if (crumb && cookie) {
-      const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(yahooSymbol)}?crumb=${crumb}&modules=incomeStatementHistory,incomeStatementHistoryQuarterly,balanceSheetHistory,balanceSheetHistoryQuarterly,cashflowStatementHistory,defaultKeyStatistics,financialData`;
+      const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(yahooSymbol)}?crumb=${crumb}&modules=incomeStatementHistory,incomeStatementHistoryQuarterly,balanceSheetHistory,balanceSheetHistoryQuarterly,cashflowStatementHistory,defaultKeyStatistics,financialData,summaryDetail,price`;
       const res = await axios.get(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -100,6 +103,10 @@ export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null)
 
     const finData = modulesData?.financialData || {};
     const keyStats = modulesData?.defaultKeyStatistics || {};
+    const summaryDetail = modulesData?.summaryDetail || {};
+    const priceModule = modulesData?.price || {};
+    const rawMarketCap = summaryDetail.marketCap?.raw || priceModule.marketCap?.raw || null;
+    const sharesOutstandingRaw = keyStats.sharesOutstanding?.raw || summaryDetail.sharesOutstanding?.raw || null;
     const annualIncomes = modulesData?.incomeStatementHistory?.incomeStatementHistory || [];
     const quarterlyIncomes = modulesData?.incomeStatementHistoryQuarterly?.incomeStatementHistory || [];
     const annualCashFlows = modulesData?.cashflowStatementHistory?.cashflowStatements || [];
@@ -134,17 +141,17 @@ export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null)
         taxRate,
         netProfit: toCr(netProfit),
         eps: item.netIncome?.raw && keyStats.sharesOutstanding?.raw 
-          ? `₹ ${(item.netIncome.raw / keyStats.sharesOutstanding.raw).toFixed(2)}`
-          : '₹ 8.40'
+          ? `${currencySymbol} ${(item.netIncome.raw / keyStats.sharesOutstanding.raw).toFixed(2)}`
+          : `${currencySymbol} 8.40`
       };
     });
 
     if (quarters.length === 0) {
       quarters = [
-        { period: 'Sep 2026', sales: '842.50', expenses: '715.20', operatingProfit: '127.30', opm: '15.11%', otherIncome: '14.20', interest: '18.40', depreciation: '22.10', profitBeforeTax: '101.00', taxRate: '25%', netProfit: '75.75', eps: '₹ 9.80' },
-        { period: 'Jun 2026', sales: '795.10', expenses: '678.00', operatingProfit: '117.10', opm: '14.73%', otherIncome: '12.80', interest: '17.90', depreciation: '21.50', profitBeforeTax: '90.50', taxRate: '25%', netProfit: '67.88', eps: '₹ 8.75' },
-        { period: 'Mar 2026', sales: '865.40', expenses: '730.20', operatingProfit: '135.20', opm: '15.62%', otherIncome: '15.60', interest: '19.10', depreciation: '23.00', profitBeforeTax: '108.70', taxRate: '25%', netProfit: '81.52', eps: '₹ 10.50' },
-        { period: 'Dec 2025', sales: '760.80', expenses: '652.40', operatingProfit: '108.40', opm: '14.25%', otherIncome: '11.40', interest: '16.80', depreciation: '20.80', profitBeforeTax: '82.20', taxRate: '25%', netProfit: '61.65', eps: '₹ 7.95' }
+        { period: 'Sep 2026', sales: '842.50', expenses: '715.20', operatingProfit: '127.30', opm: '15.11%', otherIncome: '14.20', interest: '18.40', depreciation: '22.10', profitBeforeTax: '101.00', taxRate: '25%', netProfit: '75.75', eps: `${currencySymbol} 9.80` },
+        { period: 'Jun 2026', sales: '795.10', expenses: '678.00', operatingProfit: '117.10', opm: '14.73%', otherIncome: '12.80', interest: '17.90', depreciation: '21.50', profitBeforeTax: '90.50', taxRate: '25%', netProfit: '67.88', eps: `${currencySymbol} 8.75` },
+        { period: 'Mar 2026', sales: '865.40', expenses: '730.20', operatingProfit: '135.20', opm: '15.62%', otherIncome: '15.60', interest: '19.10', depreciation: '23.00', profitBeforeTax: '108.70', taxRate: '25%', netProfit: '81.52', eps: `${currencySymbol} 10.50` },
+        { period: 'Dec 2025', sales: '760.80', expenses: '652.40', operatingProfit: '108.40', opm: '14.25%', otherIncome: '11.40', interest: '16.80', depreciation: '20.80', profitBeforeTax: '82.20', taxRate: '25%', netProfit: '61.65', eps: `${currencySymbol} 7.95` }
       ];
     }
 
@@ -174,18 +181,18 @@ export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null)
         profitBeforeTax: toCr(item.incomeBeforeTax?.raw || (opIncome * 0.85)),
         netProfit: toCr(netProfit),
         eps: item.netIncome?.raw && keyStats.sharesOutstanding?.raw
-          ? `₹ ${(item.netIncome.raw / keyStats.sharesOutstanding.raw).toFixed(2)}`
-          : '₹ 32.50',
+          ? `${currencySymbol} ${(item.netIncome.raw / keyStats.sharesOutstanding.raw).toFixed(2)}`
+          : `${currencySymbol} 32.50`,
         dividendPayout: '18%'
       };
     });
 
     if (profitAndLoss.length === 0) {
       profitAndLoss = [
-        { year: 'Mar 2026', sales: '3,263.80', expenses: '2,775.80', operatingProfit: '488.00', opm: '14.95%', otherIncome: '54.00', interest: '72.20', depreciation: '87.40', profitBeforeTax: '382.40', netProfit: '286.80', eps: '₹ 37.00', dividendPayout: '20%' },
-        { year: 'Mar 2025', sales: '2,890.40', expenses: '2,468.20', operatingProfit: '422.20', opm: '14.61%', otherIncome: '48.50', interest: '65.10', depreciation: '78.60', profitBeforeTax: '327.00', netProfit: '245.25', eps: '₹ 31.60', dividendPayout: '18%' },
-        { year: 'Mar 2024', sales: '2,510.60', expenses: '2,154.00', operatingProfit: '356.60', opm: '14.20%', otherIncome: '41.20', interest: '58.40', depreciation: '69.80', profitBeforeTax: '269.60', netProfit: '202.20', eps: '₹ 26.10', dividendPayout: '15%' },
-        { year: 'Mar 2023', sales: '2,180.20', expenses: '1,885.60', operatingProfit: '294.60', opm: '13.51%', otherIncome: '36.80', interest: '52.10', depreciation: '61.20', profitBeforeTax: '218.10', netProfit: '163.60', eps: '₹ 21.10', dividendPayout: '15%' }
+        { year: 'Mar 2026', sales: '3,263.80', expenses: '2,775.80', operatingProfit: '488.00', opm: '14.95%', otherIncome: '54.00', interest: '72.20', depreciation: '87.40', profitBeforeTax: '382.40', netProfit: '286.80', eps: `${currencySymbol} 37.00`, dividendPayout: '20%' },
+        { year: 'Mar 2025', sales: '2,890.40', expenses: '2,468.20', operatingProfit: '422.20', opm: '14.61%', otherIncome: '48.50', interest: '65.10', depreciation: '78.60', profitBeforeTax: '327.00', netProfit: '245.25', eps: `${currencySymbol} 31.60`, dividendPayout: '18%' },
+        { year: 'Mar 2024', sales: '2,510.60', expenses: '2,154.00', operatingProfit: '356.60', opm: '14.20%', otherIncome: '41.20', interest: '58.40', depreciation: '69.80', profitBeforeTax: '269.60', netProfit: '202.20', eps: `${currencySymbol} 26.10`, dividendPayout: '15%' },
+        { year: 'Mar 2023', sales: '2,180.20', expenses: '1,885.60', operatingProfit: '294.60', opm: '13.51%', otherIncome: '36.80', interest: '52.10', depreciation: '61.20', profitBeforeTax: '218.10', netProfit: '163.60', eps: `${currencySymbol} 21.10`, dividendPayout: '15%' }
       ];
     }
 
@@ -263,7 +270,20 @@ export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null)
     const roceVal = ((parseFloat(roeVal) * 1.15) || 21.4).toFixed(2) + '%';
     const debtToEquityVal = finData.debtToEquity?.raw ? (finData.debtToEquity.raw / 100).toFixed(2) : '0.42';
 
+    let marketCapFormatted = null;
+    if (rawMarketCap) {
+      marketCapFormatted = isIndian
+        ? `₹ ${(rawMarketCap / 10000000).toLocaleString('en-IN', { maximumFractionDigits: 0 })} Cr.`
+        : `$ ${(rawMarketCap >= 1e12 ? (rawMarketCap / 1e12).toFixed(2) + ' T' : (rawMarketCap / 1e9).toFixed(2) + ' B')}`;
+    } else if (sharesOutstandingRaw && priceModule.regularMarketPrice?.raw) {
+      const calcMc = sharesOutstandingRaw * priceModule.regularMarketPrice.raw;
+      marketCapFormatted = isIndian
+        ? `₹ ${(calcMc / 10000000).toLocaleString('en-IN', { maximumFractionDigits: 0 })} Cr.`
+        : `$ ${(calcMc >= 1e12 ? (calcMc / 1e12).toFixed(2) + ' T' : (calcMc / 1e9).toFixed(2) + ' B')}`;
+    }
+
     const ratios = {
+      marketCap: marketCapFormatted,
       roce: roceVal,
       roe: roeVal,
       roa: roaVal,
@@ -275,8 +295,8 @@ export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null)
       priceToBook: keyStats.priceToBook?.raw ? keyStats.priceToBook.raw.toFixed(2) : '3.40',
       forwardPE: keyStats.forwardPE?.raw ? keyStats.forwardPE.raw.toFixed(2) : '24.5',
       dividendYield: keyStats.dividendYield?.raw ? (keyStats.dividendYield.raw * 100).toFixed(2) + '%' : '1.20%',
-      bookValue: keyStats.bookValue?.raw ? `₹ ${keyStats.bookValue.raw.toFixed(2)}` : '₹ 112.50',
-      faceValue: '₹ 10.0'
+      bookValue: keyStats.bookValue?.raw ? `${currencySymbol} ${keyStats.bookValue.raw.toFixed(2)}` : `${currencySymbol} 112.50`,
+      faceValue: `${currencySymbol} 10.0`
     };
 
     // Shareholding
@@ -301,6 +321,9 @@ export async function getDetailedFinancialStatements(symbol, eodhdApiKey = null)
     const result = {
       symbol: cleanSym,
       provider: 'Zero-Cost Indian Exchange Engine (Yahoo Finance + BSE)',
+      marketCap: marketCapFormatted,
+      marketCapRaw: rawMarketCap,
+      sharesOutstanding: sharesOutstandingRaw,
       quarters,
       profitAndLoss,
       balanceSheet,
@@ -381,4 +404,39 @@ async function fetchEODHDFinancials(symbol, apiKey) {
     shareholding: { promoters: '52%', institutions: '30%', public: '18%' },
     deliveryAnalytics: { deliveryPercent: '52%', source: 'BSE Bhavcopy' }
   };
+}
+
+const marketCapCache = new Map();
+const MARKET_CAP_TTL = 60 * 60 * 1000; // 1 hour cache
+
+export async function fetchYahooMarketCap(symbol) {
+  const cleanSym = (symbol || '').trim().toUpperCase().replace('.NS', '').replace('.BO', '');
+  const cached = marketCapCache.get(cleanSym);
+  if (cached && (Date.now() - cached.ts < MARKET_CAP_TTL)) {
+    return cached.val;
+  }
+
+  try {
+    const yahooSymbol = resolveYahooSymbol(cleanSym);
+    const { crumb, cookie } = await getYahooCrumbSession();
+    if (crumb && cookie) {
+      const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(yahooSymbol)}?crumb=${crumb}&modules=summaryDetail,price`;
+      const res = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Cookie': cookie
+        },
+        timeout: 5000
+      });
+      const data = res.data?.quoteSummary?.result?.[0];
+      const mc = data?.summaryDetail?.marketCap?.raw || data?.price?.marketCap?.raw || 0;
+      if (mc > 0) {
+        marketCapCache.set(cleanSym, { val: mc, ts: Date.now() });
+        return mc;
+      }
+    }
+  } catch (e) {
+    // Fail gracefully
+  }
+  return 0;
 }

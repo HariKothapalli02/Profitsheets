@@ -13,7 +13,10 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-export default function ScreenerChart({ symbol, currentPrice = 349.4, company = {} }) {
+export default function ScreenerChart({ symbol, currentPrice = 349.4, company = {}, currencySymbol: propCurrencySymbol }) {
+  const isIndian = company.currency === 'INR' || company.exchange === 'NSE' || company.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(symbol?.toUpperCase()));
+  const currencySymbol = propCurrencySymbol || company.currencySymbol || (isIndian ? '₹' : '$');
+
   const [timeframe, setTimeframe] = useState('1Yr');
   const [candles, setCandles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -688,10 +691,10 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
               {activeDateStr}
             </span>
             <div className="flex items-center space-x-3 text-slate-600">
-              <span>O: <strong className="text-slate-900">₹{activePt.open?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
-              <span>H: <strong className="text-emerald-700">₹{activePt.high?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
-              <span>L: <strong className="text-rose-700">₹{activePt.low?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
-              <span>C: <strong className="text-slate-900 text-sm font-black">₹{activePt.close.toFixed(2)}</strong></span>
+              <span>O: <strong className="text-slate-900">{currencySymbol}{activePt.open?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
+              <span>H: <strong className="text-emerald-700">{currencySymbol}{activePt.high?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
+              <span>L: <strong className="text-rose-700">{currencySymbol}{activePt.low?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
+              <span>C: <strong className="text-slate-900 text-sm font-black">{currencySymbol}{activePt.close.toFixed(2)}</strong></span>
             </div>
           </div>
 
@@ -716,10 +719,10 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
               </span>
             )}
             {showDMA50 && activePt.dma50 && (
-              <span className="text-amber-600 font-semibold text-[11px]">50 DMA: ₹{activePt.dma50}</span>
+              <span className="text-amber-600 font-semibold text-[11px]">50 DMA: {currencySymbol}{activePt.dma50}</span>
             )}
             {showDMA200 && activePt.dma200 && (
-              <span className="text-rose-600 font-semibold text-[11px]">200 DMA: ₹{activePt.dma200}</span>
+              <span className="text-rose-600 font-semibold text-[11px]">200 DMA: {currencySymbol}{activePt.dma200}</span>
             )}
           </div>
         </div>
@@ -800,7 +803,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             textAnchor="middle"
             className="text-[9px] fill-slate-400 font-sans uppercase font-bold tracking-wider"
           >
-            {metricView === 'PE Ratio' ? 'P/E Ratio' : 'Price (₹)'}
+            {metricView === 'PE Ratio' ? 'P/E Ratio' : `Price (${currencySymbol})`}
           </text>
           {chartData.yTicks.map((tick, i) => (
             <text
@@ -941,7 +944,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 textAnchor="middle"
                 className="text-[9.5px] font-mono font-bold fill-emerald-800"
               >
-                ▲ H: ₹{chartData.highestPt.high.toFixed(1)}
+                ▲ H: {currencySymbol}{chartData.highestPt.high.toFixed(1)}
               </text>
             </g>
           )}
@@ -965,7 +968,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 textAnchor="middle"
                 className="text-[9.5px] font-mono font-bold fill-rose-800"
               >
-                ▼ L: ₹{chartData.lowestPt.low.toFixed(1)}
+                ▼ L: {currencySymbol}{chartData.lowestPt.low.toFixed(1)}
               </text>
             </g>
           )}
@@ -1030,7 +1033,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 textAnchor="middle"
                 className="text-[10px] font-mono font-bold fill-white"
               >
-                {metricView === 'PE Ratio' ? `${activePt.pe}x` : `₹${activePt.close.toFixed(1)}`}
+                {metricView === 'PE Ratio' ? `${activePt.pe}x` : `${currencySymbol}${activePt.close.toFixed(1)}`}
               </text>
 
               {/* Bottom Date Badge on Crosshair */}
@@ -1077,7 +1080,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             }}
           >
             <div className="flex items-center gap-2">
-              <span className="font-black text-sm">₹{activePt.close.toFixed(2)}</span>
+              <span className="font-black text-sm">{currencySymbol}{activePt.close.toFixed(2)}</span>
               <span className={`text-[10px] font-bold ${isFromHerePositive ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {isFromHerePositive ? '↗ +' : '↘ '}{fromHerePct}%
               </span>
@@ -1144,9 +1147,9 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
         {/* Quick Summary Meta */}
         <div className="text-[11px] text-slate-400 font-mono">
           <span>Range: </span>
-          <strong className="text-slate-700">₹{chartData.minVal?.toFixed(1)}</strong>
+          <strong className="text-slate-700">{currencySymbol}{chartData.minVal?.toFixed(1)}</strong>
           <span> – </span>
-          <strong className="text-slate-700">₹{chartData.maxVal?.toFixed(1)}</strong>
+          <strong className="text-slate-700">{currencySymbol}{chartData.maxVal?.toFixed(1)}</strong>
         </div>
       </div>
 

@@ -73,14 +73,18 @@ export default function NewsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredNews.map((item, idx) => (
-            <a
-              key={idx}
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="group bg-white rounded-[2rem] border border-slate-100/90 overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_32px_-8px_rgba(124,58,237,0.12)] hover:border-violet-200 transition-all duration-300 flex flex-col justify-between"
-            >
+          {filteredNews.map((item, idx) => {
+            const safeUrl = (item.url && !item.url.includes('news.google.com'))
+              ? item.url
+              : `https://www.google.com/search?q=${encodeURIComponent((item.headline || item.title || '') + ' ' + (item.source || ''))}`;
+            return (
+              <a
+                key={idx}
+                href={safeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group bg-white rounded-[2rem] border border-slate-100/90 overflow-hidden shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_16px_32px_-8px_rgba(124,58,237,0.12)] hover:border-violet-200 transition-all duration-300 flex flex-col justify-between"
+              >
               <div>
                 {/* News Image */}
                 <div className="h-44 w-full bg-slate-100 overflow-hidden relative">

@@ -211,6 +211,10 @@ export default function WatchlistPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {stockDetails.map((stock) => {
             const isPos = Number(stock.changePercent) >= 0;
+            const isIndian = stock.currency === 'INR' || stock.exchange === 'NSE' || stock.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));
+            const currencySymbol = stock.currencySymbol || (isIndian ? '₹' : '$');
+            const isUSD = currencySymbol === '$';
+
             return (
               <div
                 key={stock.symbol}
@@ -245,7 +249,7 @@ export default function WatchlistPage() {
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold block">Live Price</span>
                     <span className="text-lg font-black text-slate-900 tabular-nums">
-                      ₹{Number(stock.currentPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol}{Number(stock.currentPrice || 0).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
 

@@ -47,6 +47,7 @@ export default function HomePage() {
   // Market indices & popular stocks
   const [indices, setIndices] = useState([]);
   const [indicesLoading, setIndicesLoading] = useState(true);
+  const [marketPulse, setMarketPulse] = useState(null);
   const [indexTab, setIndexTab] = useState('BENCHMARK'); // 'BENCHMARK' | 'SECTORS' | 'GLOBAL'
   const [popularStocks, setPopularStocks] = useState([]);
   const [popularLoading, setPopularLoading] = useState(true);
@@ -106,12 +107,21 @@ export default function HomePage() {
 
   const fetchIndices = async () => {
     try {
-      const res = await axios.get('/api/stocks/indices');
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        setIndices(res.data);
+      const res = await axios.get('/api/stocks/market-pulse');
+      if (res.data) {
+        setMarketPulse(res.data);
+        if (Array.isArray(res.data.benchmarks) && res.data.benchmarks.length > 0) {
+          setIndices(res.data.benchmarks);
+        }
       }
     } catch (err) {
-      console.warn('Failed to load indices:', err.message);
+      console.warn('Failed to load market pulse, falling back to indices:', err.message);
+      try {
+        const fallbackRes = await axios.get('/api/stocks/indices');
+        if (Array.isArray(fallbackRes.data)) {
+          setIndices(fallbackRes.data);
+        }
+      } catch (e) {}
     } finally {
       setIndicesLoading(false);
     }
@@ -387,9 +397,9 @@ export default function HomePage() {
             <div className="hidden md:flex items-center space-x-1.5 text-xs text-slate-500">
               <span className="text-slate-300">•</span>
               <span>Breadth:</span>
-              <span className="font-mono text-emerald-700 font-medium">1,482 Adv</span>
+              <span className="font-mono text-emerald-700 font-medium">{marketPulse?.breadth?.advances || '1,482 Adv'}</span>
               <span className="text-slate-300">/</span>
-              <span className="font-mono text-rose-700 font-medium">984 Dec</span>
+              <span className="font-mono text-rose-700 font-medium">{marketPulse?.breadth?.declines || '984 Dec'}</span>
             </div>
           </div>
 
@@ -469,7 +479,7 @@ export default function HomePage() {
 
         {indexTab === 'SECTORS' && (
           <div className="flex sm:grid sm:grid-cols-4 gap-2 overflow-x-auto no-scrollbar snap-x pb-0.5 sm:pb-0">
-            {sectorData.slice(0, 4).map((sec, i) => (
+            {(marketPulse?.sectors || sectorData).slice(0, 4).map((sec, i) => (
               <div key={i} className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-800 block truncate">{sec.name}</span>
@@ -478,7 +488,7 @@ export default function HomePage() {
                 <span className={`font-mono text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${
                   sec.isUp ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
                 }`}>
-                  {sec.isUp ? '+' : ''}{sec.change}%
+                  {sec.isUp ? '+' : ''}{Number(sec.change).toFixed(2)}%
                 </span>
               </div>
             ))}
@@ -487,42 +497,24 @@ export default function HomePage() {
 
         {indexTab === 'GLOBAL' && (
           <div className="flex sm:grid sm:grid-cols-4 gap-2 overflow-x-auto no-scrollbar snap-x pb-0.5 sm:pb-0">
-            <div className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block truncate">GIFT Nifty</span>
-                <span className="text-[10px] text-slate-400 font-mono">Singapore</span>
+            {(marketPulse?.macro || [
+              { name: 'GIFT Nifty', sub: 'singapore', price: '25,402', displayChange: '+0.4%', isUp: true },
+              { name: 'India VIX', sub: 'Volatility', price: '15.21', displayChange: '-3.0%', isUp: false },
+              { name: 'Brent Crude', sub: 'USD / Bbl', price: '$91.74', displayChange: '-0.8%', isUp: false },
+              { name: 'USD / INR', sub: 'Forex Spot', price: '₹93.64', displayChange: '-0.3%', isUp: false }
+            ]).map((m, i) => (
+              <div key={i} className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-slate-800 block truncate">{m.name}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">{m.sub}</span>
+                </div>
+                <span className={`font-mono text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${
+                  m.isUp ? 'text-emerald-700 bg-emerald-50' : (m.name === 'India VIX' || m.name === 'USD / INR' ? 'text-slate-700 bg-slate-100' : 'text-rose-700 bg-rose-50')
+                }`}>
+                  {m.price} ({m.displayChange})
+                </span>
               </div>
-              <span className="font-mono text-xs font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0">
-                25,340 (+0.4%)
-              </span>
-            </div>
-            <div className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block truncate">India VIX</span>
-                <span className="text-[10px] text-slate-400 font-mono">Volatility</span>
-              </div>
-              <span className="font-mono text-xs font-medium text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
-                12.45 (-2.1%)
-              </span>
-            </div>
-            <div className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block truncate">Brent Crude</span>
-                <span className="text-[10px] text-slate-400 font-mono">USD / Bbl</span>
-              </div>
-              <span className="font-mono text-xs font-medium text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded shrink-0">
-                $74.20 (-0.8%)
-              </span>
-            </div>
-            <div className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block truncate">USD / INR</span>
-                <span className="text-[10px] text-slate-400 font-mono">Forex Spot</span>
-              </div>
-              <span className="font-mono text-xs font-medium text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
-                ₹84.38 (+0.0%)
-              </span>
-            </div>
+            ))}
           </div>
         )}
 
@@ -530,13 +522,13 @@ export default function HomePage() {
         <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs text-slate-500 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
           <div className="flex items-center space-x-2 shrink-0">
             <span className="text-slate-400">Flow:</span>
-            <span>FII <strong className="text-emerald-700 font-mono font-medium">+₹1,420 Cr</strong></span>
+            <span>FII <strong className="text-emerald-700 font-mono font-medium">{marketPulse?.flows?.fii || '+₹1,420 Cr'}</strong></span>
             <span className="text-slate-300">•</span>
-            <span>DII <strong className="text-emerald-700 font-mono font-medium">+₹2,180 Cr</strong></span>
+            <span>DII <strong className="text-emerald-700 font-mono font-medium">{marketPulse?.flows?.dii || '+₹2,180 Cr'}</strong></span>
           </div>
           <div className="flex items-center space-x-2 text-slate-400 font-mono shrink-0">
-            <span>52W H: <strong className="text-slate-700">182</strong></span>
-            <span>L: <strong className="text-slate-700">19</strong></span>
+            <span>52W H: <strong className="text-slate-700">{marketPulse?.fiftyTwoWeek?.high || 182}</strong></span>
+            <span>L: <strong className="text-slate-700">{marketPulse?.fiftyTwoWeek?.low || 19}</strong></span>
           </div>
         </div>
       </section>
@@ -907,6 +899,9 @@ export default function HomePage() {
               const isPositive = (stock.changePercent || 0) >= 0;
               const range = Math.max((stock.high || stock.price) - (stock.low || stock.price), 0.01);
               const posPct = Math.max(0, Math.min(100, (((stock.price - (stock.low || stock.price)) / range) * 100)));
+              const isIndianStock = stock.exchange === 'NSE' || stock.exchange === 'BSE' || stock.currency === 'INR' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));
+              const cardCurrencySymbol = stock.currencySymbol || (isIndianStock ? '₹' : '$');
+              const isUSD = cardCurrencySymbol === '$';
 
               return (
                 <div
@@ -941,7 +936,7 @@ export default function HomePage() {
                   <div className="space-y-1">
                     <div className="flex items-baseline justify-between">
                       <span className="text-sm sm:text-base font-semibold font-mono text-slate-900 tabular-nums">
-                        ₹{Number(stock.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {cardCurrencySymbol}{Number(stock.price || 0).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <span className="text-[11px] font-mono text-slate-400">
                         Vol: {stock.volume >= 10000000 ? `${(stock.volume / 10000000).toFixed(1)}Cr` : stock.volume >= 100000 ? `${(stock.volume / 100000).toFixed(1)}L` : String(stock.volume || 0)}
@@ -957,8 +952,8 @@ export default function HomePage() {
                         />
                       </div>
                       <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
-                        <span>L: ₹{Number(stock.low || stock.price).toFixed(1)}</span>
-                        <span>H: ₹{Number(stock.high || stock.price).toFixed(1)}</span>
+                        <span>L: {cardCurrencySymbol}{Number(stock.low || stock.price).toFixed(1)}</span>
+                        <span>H: {cardCurrencySymbol}{Number(stock.high || stock.price).toFixed(1)}</span>
                       </div>
                     </div>
                   </div>
@@ -966,7 +961,7 @@ export default function HomePage() {
                   {/* Footer Action */}
                   <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
                     <span className="text-slate-400 font-mono text-[10px]">
-                      {stock.fiftyTwoWeekHigh ? `52W H: ₹${stock.fiftyTwoWeekHigh}` : stock.sector || 'Equities'}
+                      {stock.fiftyTwoWeekHigh ? `52W H: ${cardCurrencySymbol}${stock.fiftyTwoWeekHigh}` : stock.sector || 'Equities'}
                     </span>
                     <span className="text-emerald-700 font-medium flex items-center gap-0.5 text-xs">
                       <span>Analyze</span>

@@ -364,6 +364,8 @@ export default function OrdersPage({ onGoToMarkets }) {
                   const isComplete = order.status === 'COMPLETE' || order.status === 'EXECUTED';
                   const isRejected = order.status === 'REJECTED';
                   const isCancelled = order.status === 'CANCELLED';
+                  const isUSOrder = order.currency === 'USD' || ['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(order.symbol?.toUpperCase());
+                  const ordCurrencySymbol = isUSOrder ? '$' : '₹';
 
                   return (
                     <tr key={order.id || idx} className="hover:bg-slate-50/60 transition-colors">
@@ -398,15 +400,15 @@ export default function OrdersPage({ onGoToMarkets }) {
                         )}
                       </td>
                       <td className="py-4 px-6 font-mono font-bold text-slate-800">
-                        ₹{Number(order.executedPrice || order.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {ordCurrencySymbol}{Number(order.executedPrice || order.price).toLocaleString(isUSOrder ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}
                         {order.executedPrice && order.executedPrice !== order.price && (
                           <div className="text-[10px] text-slate-400 line-through">
-                            ₹{Number(order.price).toFixed(2)}
+                            {ordCurrencySymbol}{Number(order.price).toFixed(2)}
                           </div>
                         )}
                       </td>
                       <td className="py-4 px-6 font-mono font-black text-slate-900">
-                        ₹{Number(order.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        {ordCurrencySymbol}{Number(order.total).toLocaleString(isUSOrder ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-4 px-6">
                         {order.tag ? (

@@ -48,7 +48,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [tradeFeedback, setTradeFeedback] = useState(null);
 
-  const isIndian = stock.exchange === 'NSE' || stock.exchange === 'BSE';
+  const isIndian = stock.currency === 'INR' || stock.exchange === 'NSE' || stock.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));
   const currencySymbol = stock.currencySymbol || (isIndian ? '₹' : '$');
   const currentPrice = stock.price || 100;
   const totalAmount = (quantity * currentPrice).toFixed(2);
@@ -181,7 +181,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
         } else {
           setTradeFeedback({
             type: 'success',
-            text: `✓ Demo ${tradeAction} order for ${quantity} share(s) executed & saved to database at ₹${currentPrice}!`
+            text: `✓ Demo ${tradeAction} order for ${quantity} share(s) executed & saved to database at ${currencySymbol}${currentPrice}!`
           });
         }
       } else {
@@ -392,7 +392,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">Market Cap</p>
                   <p className="text-sm font-mono font-bold text-slate-900 mt-1">
-                    {fundamentals?.ratios?.['Market Cap'] || (stock.marketCap ? `₹${(stock.marketCap / 1e7).toFixed(0)} Cr.` : '₹ 12,41,454 Cr.')}
+                    {fundamentals?.marketCap || fundamentals?.ratios?.marketCap || fundamentals?.ratios?.['Market Cap'] || (stock.marketCap ? (isIndian ? `₹${(stock.marketCap / 1e7).toFixed(0)} Cr.` : `$${(stock.marketCap / 1e9).toFixed(1)}B`) : '-')}
                   </p>
                 </div>
 
@@ -406,7 +406,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">Book Value</p>
                   <p className="text-sm font-mono font-bold text-slate-900 mt-1">
-                    {fundamentals?.ratios?.['Book Value'] || '₹ 391'}
+                    {fundamentals?.ratios?.['Book Value'] || `${currencySymbol} 391`}
                   </p>
                 </div>
 
@@ -743,30 +743,35 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                   <div className="py-4 text-center text-xs text-slate-500 font-mono">No recent headlines found.</div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {news.slice(0, 6).map((item, idx) => (
-                      <a
-                        key={idx}
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex space-x-3 p-3 rounded-lg border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all group"
-                      >
-                        <img
-                          src={item.image}
-                          alt={item.headline}
-                          className="w-16 h-16 rounded-md object-cover shrink-0 bg-slate-100"
-                          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=300&q=80'; }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] text-slate-400 font-mono mb-0.5">
-                            <span className="font-bold text-[#0c324e]">{item.source}</span> • {new Date(item.datetime).toLocaleDateString()}
+                    {news.slice(0, 6).map((item, idx) => {
+                      const safeUrl = (item.url && !item.url.includes('news.google.com'))
+                        ? item.url
+                        : `https://www.google.com/search?q=${encodeURIComponent((item.headline || item.title || '') + ' ' + (item.source || ''))}`;
+                      return (
+                        <a
+                          key={idx}
+                          href={safeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex space-x-3 p-3 rounded-lg border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all group"
+                        >
+                          <img
+                            src={item.image || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=300&q=80'}
+                            alt={item.headline || item.title}
+                            className="w-16 h-16 rounded-md object-cover shrink-0 bg-slate-100"
+                            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=300&q=80'; }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] text-slate-400 font-mono mb-0.5">
+                              <span className="font-bold text-[#0c324e]">{item.source}</span> • {item.dateStr || (item.datetime ? new Date(item.datetime).toLocaleDateString() : 'Recent')}
+                            </div>
+                            <h4 className="text-xs font-semibold text-slate-900 group-hover:text-[#0284c7] line-clamp-2 transition-colors">
+                              {item.headline || item.title}
+                            </h4>
                           </div>
-                          <h4 className="text-xs font-semibold text-slate-900 group-hover:text-[#0284c7] line-clamp-2 transition-colors">
-                            {item.headline}
-                          </h4>
-                        </div>
-                      </a>
-                    ))}
+                        </a>
+                      );
+                    })}
                   </div>
                 )}
               </div>

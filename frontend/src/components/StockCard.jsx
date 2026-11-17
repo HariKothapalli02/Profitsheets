@@ -3,8 +3,9 @@ import { ArrowUpRight, ArrowDownRight, Bookmark, Zap, TrendingUp, Sparkles } fro
 
 export default function StockCard({ stock, isWatchlisted, onToggleWatchlist, onSelectStock }) {
   const isPositive = stock.change >= 0;
-  const isIndian = stock.exchange === 'NSE' || stock.exchange === 'BSE';
+  const isIndian = stock.exchange === 'NSE' || stock.exchange === 'BSE' || stock.currency === 'INR' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));
   const currencySymbol = stock.currencySymbol || (isIndian ? '₹' : '$');
+  const isUSD = currencySymbol === '$';
 
   // Day range percentage
   const rangeSpan = (stock.high - stock.low) || 1;
@@ -54,7 +55,7 @@ export default function StockCard({ stock, isWatchlisted, onToggleWatchlist, onS
         <div className="my-3">
           <div className="flex items-baseline justify-between">
             <div className="text-2xl font-black tracking-tight text-slate-900 font-mono">
-              {currencySymbol}{stock.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {currencySymbol}{stock.price?.toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <span className={`inline-flex items-center font-mono text-xs font-bold px-2 py-1 rounded-xl ${
               isPositive 
