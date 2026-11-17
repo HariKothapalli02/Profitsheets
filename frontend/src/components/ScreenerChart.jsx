@@ -199,11 +199,11 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
     // SVG Canvas Dimensions
     const svgW = 1000;
-    const svgH = showRSI ? 420 : 350;
-    const padL = 50;
-    const padR = 55;
-    const padT = 30;
-    const padB = showRSI ? 110 : 40;
+    const svgH = showRSI ? 420 : 360;
+    const padL = 56;
+    const padR = 70; // 70px on right ensures the price scale & badge never get squeezed
+    const padT = 34; // Extra space on top for high annotations
+    const padB = showRSI ? 110 : 42;
     const plotW = svgW - padL - padR;
     const plotH = svgH - padT - padB;
 
@@ -247,39 +247,67 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       };
     });
 
-    // 1. Smooth Path for Price Line
+    // Monotone Cubic Spline (Fritsch-Carlson) for natural, non-overshooting financial curves
+    const getMonotoneSplinePath = (points) => {
+      if (!points || points.length === 0) return '';
+      if (points.length === 1) return `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+      if (points.length === 2) return `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)} L ${points[1].x.toFixed(1)},${points[1].y.toFixed(1)}`;
+
+      const n = points.length;
+      const dx = [];
+      const dy = [];
+      const m = [];
+
+      for (let i = 0; i < n - 1; i++) {
+        const deltaX = points[i + 1].x - points[i].x;
+        const deltaY = points[i + 1].y - points[i].y;
+        dx.push(deltaX);
+        dy.push(deltaY);
+        m.push(deltaY / (deltaX || 1));
+      }
+
+      const tangents = [m[0]];
+      for (let i = 1; i < n - 1; i++) {
+        if (m[i - 1] * m[i] <= 0) {
+          tangents.push(0);
+        } else {
+          tangents.push((m[i - 1] + m[i]) / 2);
+        }
+      }
+      tangents.push(m[m.length - 1]);
+
+      let path = `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+      for (let i = 0; i < n - 1; i++) {
+        const p0 = points[i];
+        const p1 = points[i + 1];
+        const d = dx[i] / 3;
+        const cp1x = p0.x + d;
+        const cp1y = p0.y + tangents[i] * d;
+        const cp2x = p1.x - d;
+        const cp2y = p1.y - tangents[i + 1] * d;
+        path += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+      }
+      return path;
+    };
+
+    // 1. Monotone Smooth Path for Price Line
     let priceLinePath = '';
     let areaPath = '';
     if (pts.length > 0) {
-      priceLinePath = `M ${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const xc = (pts[i].x + pts[i + 1].x) / 2;
-        const yc = (pts[i].y + pts[i + 1].y) / 2;
-        priceLinePath += ` Q ${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)} ${xc.toFixed(1)},${yc.toFixed(1)}`;
-      }
-      priceLinePath += ` T ${pts[pts.length - 1].x.toFixed(1)},${pts[pts.length - 1].y.toFixed(1)}`;
-
-      // Complete Area Gradient polygon path
+      priceLinePath = getMonotoneSplinePath(pts);
       const baselineY = padT + plotH;
       areaPath = `${priceLinePath} L ${pts[pts.length - 1].x.toFixed(1)},${baselineY} L ${pts[0].x.toFixed(1)},${baselineY} Z`;
     }
 
     // 2. Moving Average Paths
     const generateCurve = (arr) => {
-      let d = '';
-      let started = false;
+      const validPoints = [];
       arr.forEach((v, i) => {
-        if (v === null || v === undefined) return;
-        const x = padL + i * stepX;
-        const y = getY(v);
-        if (!started) {
-          d += `M ${x.toFixed(1)},${y.toFixed(1)}`;
-          started = true;
-        } else {
-          d += ` L ${x.toFixed(1)},${y.toFixed(1)}`;
+        if (v !== null && v !== undefined) {
+          validPoints.push({ x: padL + i * stepX, y: getY(v) });
         }
       });
-      return d;
+      return getMonotoneSplinePath(validPoints);
     };
 
     const dma50Path = generateCurve(dma50);
@@ -652,30 +680,46 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
         </div>
       </div>
 
-      {/* 2. LIVE OHLC & INSPECTION DATA RIBBON */}
+      {/* 2. PREMIUM LIVE OHLC & INSPECTION DATA RIBBON */}
       {activePt && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono bg-slate-50/80 rounded-xl px-3.5 py-2 border border-slate-200/70">
-          <div className="flex items-center space-x-4">
-            <span className="font-bold text-slate-800 font-sans">{activeDateStr}</span>
-            <span className="text-slate-400">|</span>
-            <span>O: <strong className="text-slate-800">₹{activePt.open?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
-            <span>H: <strong className="text-slate-800">₹{activePt.high?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
-            <span>L: <strong className="text-slate-800">₹{activePt.low?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
-            <span>C: <strong className="text-slate-900 text-sm font-bold">₹{activePt.close.toFixed(2)}</strong></span>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono bg-slate-50/90 rounded-xl px-4 py-2.5 border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center space-x-3.5 flex-wrap gap-y-1">
+            <span className="font-bold text-slate-900 font-sans px-2.5 py-0.5 rounded-md bg-white border border-slate-200/90 shadow-2xs">
+              {activeDateStr}
+            </span>
+            <div className="flex items-center space-x-3 text-slate-600">
+              <span>O: <strong className="text-slate-900">₹{activePt.open?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
+              <span>H: <strong className="text-emerald-700">₹{activePt.high?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
+              <span>L: <strong className="text-rose-700">₹{activePt.low?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
+              <span>C: <strong className="text-slate-900 text-sm font-black">₹{activePt.close.toFixed(2)}</strong></span>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 flex-wrap gap-y-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">FROM HERE:</span>
+              <span className={`font-bold px-1.5 py-0.5 rounded-md ${isFromHerePositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                {isFromHerePositive ? '↗ +' : '↘ '}{fromHerePct}%
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">VOL:</span>
+              <strong className="text-slate-800">{formatVolume(activePt.vol)}</strong>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">DEL:</span>
+              <strong className="text-slate-800">{Math.round(40 + (activePt.vol % 30))}%</strong>
+            </div>
             {metricView === 'PE Ratio' && (
               <span className="text-indigo-700 font-bold">
                 PE: <strong>{activePt.pe}x</strong> (Median: {chartData.medianPE}x)
               </span>
             )}
-            <span>Vol: <strong className="text-slate-700">{formatVolume(activePt.vol)}</strong></span>
             {showDMA50 && activePt.dma50 && (
-              <span className="text-amber-600 font-semibold">50 DMA: ₹{activePt.dma50}</span>
+              <span className="text-amber-600 font-semibold text-[11px]">50 DMA: ₹{activePt.dma50}</span>
             )}
             {showDMA200 && activePt.dma200 && (
-              <span className="text-rose-600 font-semibold">200 DMA: ₹{activePt.dma200}</span>
+              <span className="text-rose-600 font-semibold text-[11px]">200 DMA: ₹{activePt.dma200}</span>
             )}
           </div>
         </div>
@@ -695,18 +739,19 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
           <defs>
             {/* Elegant Area Gradient */}
             <linearGradient id="chartAreaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.22" />
-              <stop offset="60%" stopColor="#4f46e5" stopOpacity="0.05" />
-              <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.22" />
+              <stop offset="50%" stopColor="#6366f1" stopOpacity="0.08" />
+              <stop offset="90%" stopColor="#6366f1" stopOpacity="0.01" />
+              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
             </linearGradient>
 
             {/* Glowing filter for high-conviction lines */}
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#4f46e5" floodOpacity="0.3" />
+              <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#3b82f6" floodOpacity="0.25" />
             </filter>
           </defs>
 
-          {/* Subtle horizontal grid lines */}
+          {/* Subtle dashed horizontal grid lines */}
           {chartData.yTicks.map((tick, i) => (
             <line
               key={i}
@@ -714,8 +759,9 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
               y1={tick.y}
               x2={chartData.svgW - chartData.padR}
               y2={tick.y}
-              stroke="#f1f5f9"
+              stroke="#e2e8f0"
               strokeWidth="0.8"
+              strokeDasharray="4 4"
             />
           ))}
 
@@ -759,7 +805,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
           {chartData.yTicks.map((tick, i) => (
             <text
               key={i}
-              x={chartData.svgW - chartData.padR + 6}
+              x={chartData.svgW - chartData.padR + 8}
               y={tick.y}
               textAnchor="start"
               className="text-[10px] fill-slate-500 font-mono"
@@ -777,11 +823,10 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
               y={b.y}
               width={b.w}
               height={b.h}
-              fill={b.isUp ? '#a7f3d0' : '#fecdd3'}
-              stroke={b.isUp ? '#6ee7b7' : '#fda4af'}
-              strokeWidth="0.5"
-              opacity="0.85"
-              rx="1"
+              fill={b.isUp ? '#10b981' : '#f43f5e'}
+              opacity={hoverIndex === i ? 0.95 : 0.65}
+              rx="1.5"
+              className="transition-opacity duration-100"
             />
           ))}
 
@@ -837,12 +882,12 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 d={chartData.areaPath}
                 fill="url(#chartAreaGradient)"
               />
-              {/* Authentic Screener Blue Price Line */}
+              {/* Authentic Royal Blue Price Line */}
               <path
                 d={chartData.priceLinePath}
                 fill="none"
-                stroke="#4f46e5"
-                strokeWidth="2.2"
+                stroke="#2563eb"
+                strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 filter="url(#glow)"
@@ -879,48 +924,48 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
           {/* Period High & Low Badges */}
           {showHighLow && metricView === 'Price' && chartData.highestPt && (
             <g>
-              <circle cx={chartData.highestPt.x} cy={chartData.highestPt.y} r="3" fill="#10b981" />
+              <circle cx={chartData.highestPt.x} cy={chartData.highestPt.y} r="3.5" fill="#10b981" />
               <rect
-                x={Math.min(chartData.svgW - chartData.padR - 70, chartData.highestPt.x - 35)}
-                y={chartData.highestPt.y - 20}
-                width="70"
-                height="16"
+                x={Math.min(chartData.svgW - chartData.padR - 76, Math.max(chartData.padL, chartData.highestPt.x - 38))}
+                y={chartData.highestPt.y - 23}
+                width="76"
+                height="17"
                 rx="4"
                 fill="#ecfdf5"
-                stroke="#a7f3d0"
-                strokeWidth="0.8"
+                stroke="#10b981"
+                strokeWidth="1"
               />
               <text
-                x={Math.min(chartData.svgW - chartData.padR - 35, chartData.highestPt.x)}
-                y={chartData.highestPt.y - 9}
+                x={Math.min(chartData.svgW - chartData.padR - 38, Math.max(chartData.padL + 38, chartData.highestPt.x))}
+                y={chartData.highestPt.y - 11}
                 textAnchor="middle"
-                className="text-[9px] font-mono font-bold fill-emerald-800"
+                className="text-[9.5px] font-mono font-bold fill-emerald-800"
               >
-                H: ₹{chartData.highestPt.high.toFixed(1)}
+                ▲ H: ₹{chartData.highestPt.high.toFixed(1)}
               </text>
             </g>
           )}
 
           {showHighLow && metricView === 'Price' && chartData.lowestPt && (
             <g>
-              <circle cx={chartData.lowestPt.x} cy={chartData.lowestPt.y} r="3" fill="#ef4444" />
+              <circle cx={chartData.lowestPt.x} cy={chartData.lowestPt.y} r="3.5" fill="#ef4444" />
               <rect
-                x={Math.max(chartData.padL, chartData.lowestPt.x - 35)}
-                y={chartData.lowestPt.y + 6}
-                width="70"
-                height="16"
+                x={Math.min(chartData.svgW - chartData.padR - 76, Math.max(chartData.padL, chartData.lowestPt.x - 38))}
+                y={chartData.lowestPt.y + 7}
+                width="76"
+                height="17"
                 rx="4"
                 fill="#fff1f2"
-                stroke="#fecdd3"
-                strokeWidth="0.8"
+                stroke="#f43f5e"
+                strokeWidth="1"
               />
               <text
-                x={Math.max(chartData.padL + 35, chartData.lowestPt.x)}
-                y={chartData.lowestPt.y + 17}
+                x={Math.min(chartData.svgW - chartData.padR - 38, Math.max(chartData.padL + 38, chartData.lowestPt.x))}
+                y={chartData.lowestPt.y + 19}
                 textAnchor="middle"
-                className="text-[9px] font-mono font-bold fill-rose-800"
+                className="text-[9.5px] font-mono font-bold fill-rose-800"
               >
-                L: ₹{chartData.lowestPt.low.toFixed(1)}
+                ▼ L: ₹{chartData.lowestPt.low.toFixed(1)}
               </text>
             </g>
           )}
@@ -955,7 +1000,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 cx={activePt.x}
                 cy={activePt.y}
                 r="6"
-                fill="#4f46e5"
+                fill="#2563eb"
                 opacity="0.3"
                 className="animate-ping"
               />
@@ -965,7 +1010,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 cx={activePt.x}
                 cy={activePt.y}
                 r="4.5"
-                fill="#312e81"
+                fill="#1e3a8a"
                 stroke="#ffffff"
                 strokeWidth="1.5"
               />
@@ -973,19 +1018,37 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
               {/* Right Y-Axis Price Label Badge */}
               <rect
                 x={chartData.svgW - chartData.padR + 2}
-                y={activePt.y - 9}
-                width="48"
-                height="18"
+                y={activePt.y - 10}
+                width="56"
+                height="20"
                 rx="4"
-                fill="#1e1b4b"
+                fill="#0f172a"
               />
               <text
-                x={chartData.svgW - chartData.padR + 26}
-                y={activePt.y + 3}
+                x={chartData.svgW - chartData.padR + 30}
+                y={activePt.y + 4}
                 textAnchor="middle"
                 className="text-[10px] font-mono font-bold fill-white"
               >
-                {metricView === 'PE Ratio' ? `${activePt.pe}x` : activePt.close.toFixed(1)}
+                {metricView === 'PE Ratio' ? `${activePt.pe}x` : `₹${activePt.close.toFixed(1)}`}
+              </text>
+
+              {/* Bottom Date Badge on Crosshair */}
+              <rect
+                x={activePt.x - 38}
+                y={chartData.padT + chartData.plotH + 4}
+                width="76"
+                height="18"
+                rx="4"
+                fill="#0f172a"
+              />
+              <text
+                x={activePt.x}
+                y={chartData.padT + chartData.plotH + 16}
+                textAnchor="middle"
+                className="text-[9px] font-mono font-bold fill-white"
+              >
+                {activeDateStr}
               </text>
             </g>
           )}
@@ -995,7 +1058,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             <text
               key={i}
               x={xt.x}
-              y={chartData.padT + chartData.plotH + 18}
+              y={chartData.padT + chartData.plotH + 20}
               textAnchor="middle"
               className="text-[10px] fill-slate-400 font-mono"
             >
@@ -1004,36 +1067,19 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
           ))}
         </svg>
 
-        {/* Floating Tooltip Box matching Screenshot design */}
-        {activePt && (
+        {/* Dynamic Interactive Cursor Pill (Only visible when hovering) */}
+        {isHovering && activePt && (
           <div 
-            className="absolute z-20 pointer-events-none transform -translate-x-1/2 bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 shadow-lg px-4 py-2 flex items-center space-x-4 text-xs font-mono transition-all duration-75"
+            className="absolute z-20 pointer-events-none transform -translate-x-1/2 bg-slate-900/95 text-white backdrop-blur-md px-3 py-1.5 rounded-lg shadow-xl text-xs font-mono border border-slate-700/80 transition-all duration-75"
             style={{ 
-              left: `${Math.max(12, Math.min(88, (activePt.x / chartData.svgW) * 100))}%`,
-              top: `12px` 
+              left: `${Math.max(10, Math.min(90, (activePt.x / chartData.svgW) * 100))}%`,
+              top: `${Math.max(8, (activePt.y / chartData.svgH) * 100 - 15)}%` 
             }}
           >
-            <div>
-              <span className="text-[9px] text-slate-400 block font-sans font-semibold uppercase">{activeDateStr}</span>
-              <span className="font-black text-slate-900 text-sm">₹ {activePt.close.toFixed(2)}</span>
-            </div>
-            
-            <div className="border-l border-slate-200 pl-3">
-              <span className="text-[9px] text-slate-400 block font-sans font-semibold uppercase">FROM HERE</span>
-              <span className={`font-bold ${isFromHerePositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {isFromHerePositive ? '↗' : '↘'} {fromHerePct}%
-              </span>
-            </div>
-
-            <div className="border-l border-slate-200 pl-3">
-              <span className="text-[9px] text-slate-400 block font-sans font-semibold uppercase">VOL</span>
-              <span className="font-bold text-slate-700">{formatVolume(activePt.vol)}</span>
-            </div>
-
-            <div className="border-l border-slate-200 pl-3">
-              <span className="text-[9px] text-slate-400 block font-sans font-semibold uppercase">DEL</span>
-              <span className="font-bold text-slate-700">
-                {Math.round(40 + (activePt.vol % 30))}%
+            <div className="flex items-center gap-2">
+              <span className="font-black text-sm">₹{activePt.close.toFixed(2)}</span>
+              <span className={`text-[10px] font-bold ${isFromHerePositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {isFromHerePositive ? '↗ +' : '↘ '}{fromHerePct}%
               </span>
             </div>
           </div>

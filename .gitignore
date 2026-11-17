@@ -18,7 +18,7 @@ dist/
 dist-ssr/
 build/
 frontend/dist/
-
+temp_scanx/
 # Database & runtime storage
 backend/data/*.json
 !backend/data/.gitkeep

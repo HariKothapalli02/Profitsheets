@@ -22,7 +22,8 @@ import {
   Building,
   Filter,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useKite } from '../context/KiteContext';
@@ -327,6 +328,279 @@ export default function CompanyPage() {
             <span className="text-[10px] text-slate-400 font-mono block">BSE Bhavcopy</span>
           </div>
         </div>
+
+        {/* 2b. ENHANCED SESSION OHLC DYNAMICS & INTRADAY RANGE */}
+        {(() => {
+          const tOpen = Number(data.todayOpen || data.open || data.currentPrice || 0);
+          const tClose = Number(data.todayClose || data.currentPrice || 0);
+          const tHigh = Number(data.todayHigh || Math.max(tOpen, tClose));
+          const tLow = Number(data.todayLow || Math.min(tOpen, tClose));
+
+          const yOpen = Number(data.yesterdayOpen || data.previousClose || 0);
+          const yClose = Number(data.yesterdayClose || data.previousClose || 0);
+          const yHigh = Number(data.yesterdayHigh || Math.max(yOpen, yClose));
+          const yLow = Number(data.yesterdayLow || Math.min(yOpen, yClose));
+
+          const calcStats = (open, close, high, low) => {
+            const range = Math.max(high - low, 0.01);
+            const bodyLeft = Math.max(0, Math.min(100, ((Math.min(open, close) - low) / range) * 100));
+            const bodyWidth = Math.max(2, Math.min(100 - bodyLeft, (Math.abs(close - open) / range) * 100));
+            const pinPos = Math.max(0, Math.min(100, ((close - low) / range) * 100));
+            const isBullish = close >= open;
+            const diff = close - open;
+            const movePct = open > 0 ? ((diff / open) * 100).toFixed(2) : '0.00';
+            const rangePct = low > 0 ? (((high - low) / low) * 100).toFixed(2) : '0.00';
+            return { range, bodyLeft, bodyWidth, pinPos, isBullish, diff, movePct, rangePct };
+          };
+
+          const tStats = calcStats(tOpen, tClose, tHigh, tLow);
+          const yStats = calcStats(yOpen, yClose, yHigh, yLow);
+
+          // Overnight Gap (Between Yesterday's Close and Today's Open)
+          const gap = yClose > 0 ? tOpen - yClose : 0;
+          const gapPct = yClose > 0 ? ((gap / yClose) * 100).toFixed(2) : '0.00';
+          const isGapUp = gap > 0.05;
+          const isGapDown = gap < -0.05;
+
+          return (
+            <div className="mt-4 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5">
+              {/* Header Bar with Gap Analysis */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 mb-4 border-b border-slate-100 gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                        Session OHLC Dynamics & Intraday Range
+                      </h3>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Live Feed
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Comparing session opening, closing, extremes, and candle ranges
+                    </p>
+                  </div>
+                </div>
+
+                {/* Overnight Gap Badge */}
+                {yClose > 0 && (
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Overnight Gap:
+                    </span>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border ${
+                      isGapUp 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                        : isGapDown 
+                        ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                        : 'bg-slate-50 text-slate-700 border-slate-200'
+                    }`}>
+                      {isGapUp ? <ArrowUpRight className="w-3.5 h-3.5" /> : isGapDown ? <ArrowDownRight className="w-3.5 h-3.5" /> : null}
+                      {isGapUp ? `+₹${gap.toFixed(2)} (+${gapPct}%) Gap Up` : isGapDown ? `-₹${Math.abs(gap).toFixed(2)} (${gapPct}%) Gap Down` : 'Flat Open (0.00%)'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Dual Session Comparison Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* 1. TODAY'S CARD */}
+                <div className={`p-4 rounded-xl border transition-all ${
+                  tStats.isBullish 
+                    ? 'bg-gradient-to-b from-emerald-50/30 to-white border-emerald-200/80 shadow-xs' 
+                    : 'bg-gradient-to-b from-rose-50/30 to-white border-rose-200/80 shadow-xs'
+                }`}>
+                  {/* Card Title & Badges */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                        tStats.isBullish ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                      }`}>
+                        Today
+                      </span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {data.todayDate || 'Current Session'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">Intraday:</span>
+                      <span className={`font-bold px-1.5 py-0.5 rounded-md ${
+                        tStats.isBullish ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {tStats.diff >= 0 ? '+' : ''}{tStats.diff.toFixed(2)} ({tStats.movePct}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4-Box OHLC Matrix */}
+                  <div className="grid grid-cols-4 gap-2 mb-3.5">
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
+                      <span className="font-mono font-bold text-slate-800 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                        ₹{tOpen.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
+                      <span className="font-mono font-bold text-emerald-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                        ₹{tHigh.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
+                      <span className="font-mono font-bold text-rose-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                        ₹{tLow.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider block">LTP / Close</span>
+                      <span className={`font-mono font-black text-xs sm:text-sm block mt-0.5 tabular-nums ${
+                        tStats.isBullish ? 'text-emerald-600' : 'text-rose-600'
+                      }`}>
+                        ₹{tClose.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Visual Range Bar (Wick + Body) */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                      <span>Low: ₹{tLow.toFixed(2)}</span>
+                      <span className="font-sans font-semibold text-slate-400">
+                        Spread: ₹{tStats.range.toFixed(2)} ({tStats.rangePct}%)
+                      </span>
+                      <span>High: ₹{tHigh.toFixed(2)}</span>
+                    </div>
+
+                    <div className="relative h-2.5 bg-slate-200/80 rounded-full overflow-visible">
+                      {/* Body Bar */}
+                      <div 
+                        className={`absolute top-0 bottom-0 rounded-full transition-all duration-300 ${
+                          tStats.isBullish ? 'bg-emerald-500 shadow-xs' : 'bg-rose-500 shadow-xs'
+                        }`}
+                        style={{
+                          left: `${tStats.bodyLeft}%`,
+                          width: `${tStats.bodyWidth}%`
+                        }}
+                      />
+                      {/* Pin Marker for Current Price / Close */}
+                      <div 
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-slate-900 border-2 border-white shadow-md z-10"
+                        style={{ left: `${tStats.pinPos}%` }}
+                        title={`LTP: ₹${tClose.toFixed(2)}`}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
+                      <span>Day's Low (0%)</span>
+                      <span className="font-mono font-bold text-slate-600">
+                        {tStats.pinPos <= 15 ? 'Trading at Day Low' : tStats.pinPos >= 85 ? 'Trading at Day High' : `At ${tStats.pinPos.toFixed(0)}% of Range`}
+                      </span>
+                      <span>Day's High (100%)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. YESTERDAY'S CARD */}
+                <div className="p-4 rounded-xl border border-slate-200/90 bg-gradient-to-b from-slate-50/50 to-white shadow-xs">
+                  {/* Card Title & Badges */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-800">
+                        Yesterday
+                      </span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {data.yesterdayDate || 'Previous Session'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">Change:</span>
+                      <span className={`font-bold px-1.5 py-0.5 rounded-md ${
+                        yStats.isBullish ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                      }`}>
+                        {yStats.diff >= 0 ? '+' : ''}{yStats.diff.toFixed(2)} ({yStats.movePct}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 4-Box OHLC Matrix */}
+                  <div className="grid grid-cols-4 gap-2 mb-3.5">
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
+                      <span className="font-mono font-bold text-slate-800 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                        ₹{yOpen.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
+                      <span className="font-mono font-bold text-emerald-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                        ₹{yHigh.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
+                      <span className="font-mono font-bold text-rose-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                        ₹{yLow.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Close</span>
+                      <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                        ₹{yClose.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Visual Range Bar (Wick + Body) */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                      <span>Low: ₹{yLow.toFixed(2)}</span>
+                      <span className="font-sans font-semibold text-slate-400">
+                        Spread: ₹{yStats.range.toFixed(2)} ({yStats.rangePct}%)
+                      </span>
+                      <span>High: ₹{yHigh.toFixed(2)}</span>
+                    </div>
+
+                    <div className="relative h-2.5 bg-slate-200/80 rounded-full overflow-visible">
+                      {/* Body Bar */}
+                      <div 
+                        className={`absolute top-0 bottom-0 rounded-full transition-all duration-300 ${
+                          yStats.isBullish ? 'bg-emerald-500 shadow-xs' : 'bg-rose-500 shadow-xs'
+                        }`}
+                        style={{
+                          left: `${yStats.bodyLeft}%`,
+                          width: `${yStats.bodyWidth}%`
+                        }}
+                      />
+                      {/* Pin Marker for Settlement Close */}
+                      <div 
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-slate-700 border-2 border-white shadow-md z-10"
+                        style={{ left: `${yStats.pinPos}%` }}
+                        title={`Settled Close: ₹${yClose.toFixed(2)}`}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
+                      <span>Session Low</span>
+                      <span className="font-mono font-semibold text-slate-500">
+                        Settled at {yStats.pinPos.toFixed(0)}% of session range
+                      </span>
+                      <span>Session High</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 3. ORDER EXECUTION TERMINAL */}

@@ -72,3 +72,12 @@
   animation: shimmer 2.5s infinite;
   content: '';
 }
+
+/* Hide scrollbar for horizontal swipe chips and tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

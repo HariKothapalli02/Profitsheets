@@ -60,7 +60,7 @@ export async function fetchLiveQuote(symbol) {
   }
 
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=5d`;
     const res = await axios.get(url, { headers: HEADERS, timeout: 6000 });
     const result = res.data?.chart?.result?.[0];
 
@@ -77,6 +77,26 @@ export async function fetchLiveQuote(symbol) {
     const change = Number((price - previousClose).toFixed(2));
     const changePercent = previousClose > 0 ? Number(((change / previousClose) * 100).toFixed(2)) : 0;
 
+    // Extract exact Today and Yesterday OHLC candles
+    const timestamps = result.timestamp || [];
+    const quoteData = result.indicators?.quote?.[0] || {};
+    const len = timestamps.length;
+    const todayIdx = len > 0 ? len - 1 : -1;
+    const yestIdx = len > 1 ? len - 2 : -1;
+
+    const todayDate = todayIdx >= 0 ? new Date(timestamps[todayIdx] * 1000).toISOString().split('T')[0] : '';
+    const yesterdayDate = yestIdx >= 0 ? new Date(timestamps[yestIdx] * 1000).toISOString().split('T')[0] : '';
+
+    const todayOpen = Number((todayIdx >= 0 && quoteData.open?.[todayIdx] != null ? quoteData.open[todayIdx] : meta.regularMarketOpen || price).toFixed(2));
+    const todayClose = price;
+    const todayHigh = Number((todayIdx >= 0 && quoteData.high?.[todayIdx] != null ? quoteData.high[todayIdx] : meta.regularMarketDayHigh || price).toFixed(2));
+    const todayLow = Number((todayIdx >= 0 && quoteData.low?.[todayIdx] != null ? quoteData.low[todayIdx] : meta.regularMarketDayLow || price).toFixed(2));
+
+    const yesterdayOpen = Number((yestIdx >= 0 && quoteData.open?.[yestIdx] != null ? quoteData.open[yestIdx] : previousClose).toFixed(2));
+    const yesterdayClose = Number((yestIdx >= 0 && quoteData.close?.[yestIdx] != null ? quoteData.close[yestIdx] : previousClose).toFixed(2));
+    const yesterdayHigh = Number((yestIdx >= 0 && quoteData.high?.[yestIdx] != null ? quoteData.high[yestIdx] : previousClose).toFixed(2));
+    const yesterdayLow = Number((yestIdx >= 0 && quoteData.low?.[yestIdx] != null ? quoteData.low[yestIdx] : previousClose).toFixed(2));
+
     const quote = {
       symbol: cleanSym,
       yahooSymbol,
@@ -87,10 +107,34 @@ export async function fetchLiveQuote(symbol) {
       price,
       change,
       changePercent,
-      open: Number((meta.regularMarketOpen || price).toFixed(2)),
-      high: Number((meta.regularMarketDayHigh || price).toFixed(2)),
-      low: Number((meta.regularMarketDayLow || price).toFixed(2)),
+      open: todayOpen,
+      high: todayHigh,
+      low: todayLow,
       previousClose,
+      todayOpen,
+      todayClose,
+      todayHigh,
+      todayLow,
+      todayDate,
+      yesterdayOpen,
+      yesterdayClose,
+      yesterdayHigh,
+      yesterdayLow,
+      yesterdayDate,
+      today: {
+        date: todayDate,
+        open: todayOpen,
+        close: todayClose,
+        high: todayHigh,
+        low: todayLow
+      },
+      yesterday: {
+        date: yesterdayDate,
+        open: yesterdayOpen,
+        close: yesterdayClose,
+        high: yesterdayHigh,
+        low: yesterdayLow
+      },
       volume: meta.regularMarketVolume || 0,
       fiftyTwoWeekHigh: Number((meta.fiftyTwoWeekHigh || price * 1.2).toFixed(2)),
       fiftyTwoWeekLow: Number((meta.fiftyTwoWeekLow || price * 0.8).toFixed(2)),

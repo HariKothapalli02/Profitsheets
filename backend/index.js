@@ -41,6 +41,17 @@ app.use(async (req, res, next) => {
 // Serve static frontend files if built
 app.use(express.static(DIST_PATH));
 
+// System Health Check Endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'ProfitSheets Engine',
+    uptime: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+    database: mongoDao.isConnected() ? 'connected' : 'fallback-memory'
+  });
+});
+
 // Initialize MongoDB on startup
 initMongoDB();
 
