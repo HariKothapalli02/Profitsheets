@@ -40,6 +40,7 @@ const OrderSchema = new mongoose.Schema({
   orderType: { type: String, default: 'MARKET' },
   product: { type: String, default: 'CNC' },
   validity: { type: String, default: 'DAY' },
+  variety: { type: String, default: 'REGULAR' },
   broker: { type: String, default: 'Zerodha Kite' },
   status: { 
     type: String, 

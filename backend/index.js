@@ -716,6 +716,7 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
     orderType = 'MARKET',
     product = 'CNC',
     validity = 'DAY',
+    variety = 'REGULAR',
     broker = 'Zerodha Kite',
     tag,
     isDemo = false
@@ -730,6 +731,7 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
   const unitPrice = Number(price);
   const totalVal = Number((qty * unitPrice).toFixed(2));
   const isVirtualDemo = isDemo || broker.toLowerCase().includes('demo') || broker.toLowerCase().includes('virtual');
+  const normalizedVariety = String(variety || 'REGULAR').toUpperCase();
 
   // Generate unique Kite-compliant reference tag (Zerodha requires max 8 chars)
   const orderTag = (tag ? String(tag).trim().slice(0, 8) : ('P' + Date.now().toString(36).slice(-4) + Math.random().toString(36).substring(2, 5))).toUpperCase().slice(0, 8);
@@ -741,7 +743,9 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
   const balanceApplied = isVirtualDemo;
   const statusMessage = isVirtualDemo
     ? 'Executed instantly via Virtual Demo Trading Engine'
-    : 'Dispatched to Zerodha Kite basket. Awaiting execution confirmation.';
+    : (normalizedVariety === 'AMO'
+        ? 'Dispatched to Zerodha Kite as After Market Order (AMO). Awaiting market opening execution.'
+        : 'Dispatched to Zerodha Kite basket. Awaiting execution confirmation.');
 
   const orderObj = {
     id: 'ord_' + Date.now() + Math.random().toString(36).substring(2, 6),
@@ -755,6 +759,7 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
     orderType: orderType.toUpperCase(),
     product: product.toUpperCase(),
     validity: validity.toUpperCase(),
+    variety: normalizedVariety,
     broker: isVirtualDemo ? 'Virtual Demo' : 'Zerodha Kite',
     status: status,
     tag: orderTag,

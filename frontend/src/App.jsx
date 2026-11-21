@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import KiteSettingsModal from './components/KiteSettingsModal';
 import ScrollToTop from './components/ScrollToTop';
+import ScrollManager from './components/ScrollManager';
 
 import HomePage from './pages/HomePage';
 import CompanyPage from './pages/CompanyPage';
@@ -21,6 +22,9 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#f8fafc] text-slate-900 font-sans antialiased">
       {/* Global Scroll-to-Top Enforcer on all route changes */}
       <ScrollToTop />
+
+      {/* Global Scroll Performance Manager: Reading Progress, Smooth Scroll-to-Top, and Intersection Observer */}
+      <ScrollManager />
 
       {/* Authentic Screener.in Top Header */}
       <Navbar />

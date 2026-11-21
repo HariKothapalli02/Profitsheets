@@ -106,7 +106,7 @@ export default function WatchlistPage() {
     <div className="space-y-6 w-full max-w-[1720px] mx-auto pb-16 font-sans">
       
       {/* 1. Header (Unslopped, Clean Origin-UI Style) */}
-      <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="reveal-init bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500 mb-1">
             <Bookmark className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
@@ -210,7 +210,7 @@ export default function WatchlistPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="reveal-init stagger-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {stockDetails.map((stock) => {
             const isPos = Number(stock.changePercent) >= 0;
             const isIndian = stock.currency === 'INR' || stock.exchange === 'NSE' || stock.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));

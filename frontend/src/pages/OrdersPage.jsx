@@ -216,7 +216,7 @@ export default function OrdersPage({ onGoToMarkets }) {
       )}
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-violet-50/90 via-purple-50/40 to-white rounded-[2.5rem] p-6 sm:p-8 border border-purple-100/70 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="reveal-init bg-gradient-to-br from-violet-50/90 via-purple-50/40 to-white rounded-[2.5rem] p-6 sm:p-8 border border-purple-100/70 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-violet-100/80 text-violet-700 text-xs font-bold mb-2">
             <Database className="w-3.5 h-3.5" />

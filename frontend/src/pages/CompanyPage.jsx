@@ -206,7 +206,7 @@ export default function CompanyPage() {
     <div className="space-y-4 w-full max-w-[1720px] mx-auto pb-24 md:pb-16 font-sans">
       
       {/* 1. TOP HEADER & LIVE EXCHANGE TICK CARD */}
-      <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5 sm:space-y-5">
+      <div className="reveal-init bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5 sm:space-y-5">
         
         {/* Main Header Container */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-5 pb-3.5 sm:pb-5 border-b border-slate-100">
@@ -327,7 +327,7 @@ export default function CompanyPage() {
         </div>
 
         {/* 2. REAL INSTITUTIONAL KEY STATS MATRIX */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5 pt-0.5">
+        <div className="reveal-init stagger-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5 pt-0.5">
           <div className="bg-slate-50/80 hover:bg-slate-100/70 p-2 sm:p-2.5 rounded-xl border border-slate-200/80 transition-colors">
             <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Market Cap</span>
             <p className="font-mono font-black text-slate-900 text-xs sm:text-sm mt-0.5 tabular-nums truncate">{data.marketCap || '-'}</p>
@@ -397,7 +397,7 @@ export default function CompanyPage() {
           const isGapDown = gap < -0.05;
 
           return (
-            <div className="mt-3.5 sm:mt-4 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 sm:p-5">
+            <div className="reveal-init mt-3.5 sm:mt-4 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 sm:p-5">
               {/* Header Bar with Gap Analysis */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-3 sm:mb-4 border-b border-slate-100 gap-2">
                 <div className="flex items-center gap-2 sm:gap-2.5">
@@ -683,12 +683,12 @@ export default function CompanyPage() {
       </div>
 
       {/* 4. REAL INTERACTIVE SCREENER CANDLESTICK & VOLUME CHART */}
-      <div id="chart-section">
+      <div id="chart-section" className="reveal-init">
         <ScreenerChart symbol={data.symbol} currentPrice={data.currentPrice} company={data} currencySymbol={currencySymbol} />
       </div>
 
       {/* 5. AUDITED FINANCIAL STATEMENTS & OFFICIAL BSE FILINGS (SCREENER COMPREHENSIVE SUITE) */}
-      <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs p-3.5 sm:p-6 space-y-4 sm:space-y-5">
+      <div className="reveal-init bg-white rounded-xl border border-slate-200/90 shadow-xs p-3.5 sm:p-6 space-y-4 sm:space-y-5">
         
         {/* Navigation Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">

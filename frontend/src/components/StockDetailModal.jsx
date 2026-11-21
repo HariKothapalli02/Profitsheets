@@ -23,6 +23,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useKite } from '../context/KiteContext';
 import { ChartSkeleton, TableSkeleton } from './LoadingAnimations';
+import { getIndianMarketSession } from './OrderExecutionModal';
 
 export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
   const { user, fetchCurrentUser } = useAuth();
@@ -111,6 +112,8 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
     const activeKey = (kiteApiKey || 'pplopxdr29w7pa6u').trim();
     // Zerodha Kite requirement: tag must be alphanumeric and max 8 characters
     const orderTag = ('P' + Date.now().toString(36).slice(-4) + Math.random().toString(36).substring(2, 5)).toUpperCase().slice(0, 8);
+    const marketSession = getIndianMarketSession();
+    const targetVariety = marketSession.variety;
 
     if (isIndian && triggerZerodhaPopup) {
       try {
@@ -136,7 +139,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
         dataInput.name = 'data';
         
         const basket = [{
-          variety: 'regular',
+          variety: targetVariety,
           tradingsymbol: stock.symbol.toUpperCase(),
           exchange: exchange.toUpperCase(),
           transaction_type: tradeAction.toUpperCase(),
@@ -167,6 +170,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
           price: currentPrice,
           exchange: exchange,
           orderType: orderType,
+          variety: targetVariety,
           broker: triggerZerodhaPopup ? 'Zerodha Kite' : 'Virtual Demo',
           isDemo: !triggerZerodhaPopup,
           tag: orderTag

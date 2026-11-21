@@ -442,7 +442,7 @@ export default function HomePage() {
     <div className="space-y-4 sm:space-y-8 pb-16 sm:pb-20 font-sans text-slate-900">
       
       {/* 1. TOP MARKET PULSE & BENCHMARK INDICES BAR */}
-      <section className="bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-5 shadow-xs space-y-3">
+      <section className="reveal-init bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-5 shadow-xs space-y-3">
         
         {/* Responsive Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 sm:pb-3 border-b border-slate-100">
@@ -628,7 +628,7 @@ export default function HomePage() {
       )}
 
       {/* 2. INSTITUTIONAL HERO SECTION */}
-      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white via-slate-50/40 to-white p-4 sm:p-9 text-center space-y-4 sm:space-y-6 shadow-xs">
+      <section className="reveal-init stagger-1 relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white via-slate-50/40 to-white p-4 sm:p-9 text-center space-y-4 sm:space-y-6 shadow-xs">
         {/* Ambient Gradient Glow Backdrop */}
         <div className="absolute -top-24 -left-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow"></div>
         <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" style={{ animationDelay: '1.5s' }}></div>
@@ -792,6 +792,55 @@ export default function HomePage() {
             ))}
           </div>
 
+          {/* Focal Crafted Horizon Element: Live Terminal Quick Deck */}
+          <div className="pt-2 sm:pt-3 max-w-4xl mx-auto text-left">
+            <div className="bg-white/95 rounded-2xl border border-slate-200/90 p-3 sm:p-4.5 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="font-bold text-slate-900 tracking-tight">Active Market Horizon</span>
+                  <span className="text-[10px] font-mono text-slate-400">Live Indian Bluechips</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500 flex-wrap">
+                  <span className="text-emerald-700 font-semibold">{marketPulse?.breadth?.advances || '1,482 Adv'}</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-rose-600 font-semibold">{marketPulse?.breadth?.declines || '984 Dec'}</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-700 font-semibold">Net Inst: {marketPulse?.flows?.dii || '+₹2,180 Cr'}</span>
+                </div>
+              </div>
+
+              {/* 4 Bluechip Equities Live Ticker Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+                {[
+                  { sym: 'RELIANCE', name: 'Reliance Ind.', price: '1,377.50', chg: '+2.43%', up: true },
+                  { sym: 'TCS', name: 'Tata Consultancy', price: '3,842.20', chg: '+1.18%', up: true },
+                  { sym: 'HDFCBANK', name: 'HDFC Bank', price: '1,724.80', chg: '+0.85%', up: true },
+                  { sym: 'INFY', name: 'Infosys Ltd', price: '1,892.40', chg: '+1.64%', up: true }
+                ].map((stock) => (
+                  <div
+                    key={stock.sym}
+                    onClick={() => handleSelectCompany(stock.sym)}
+                    className="group p-2.5 sm:p-3 rounded-xl bg-slate-50/70 hover:bg-white border border-slate-200/80 hover:border-emerald-300 hover:shadow-xs transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-black text-xs sm:text-sm text-slate-900 group-hover:text-emerald-700 transition-colors">
+                        {stock.sym}
+                      </span>
+                      <span className="inline-flex items-center text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                        {stock.chg}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between pt-0.5 text-xs font-mono">
+                      <span className="text-slate-800 font-bold">₹{stock.price}</span>
+                      <span className="text-[10px] text-slate-400 group-hover:text-emerald-600 transition-colors">Screen →</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Recent Searches Line */}
           {recentSearches.length > 0 && (
             <div className="flex items-center justify-between sm:justify-center gap-2 text-xs text-slate-400 font-mono pt-1.5 border-t border-slate-100 overflow-x-auto no-scrollbar whitespace-nowrap">
@@ -948,7 +997,7 @@ export default function HomePage() {
       )}
 
       {/* 4. LIVE MARKET MOVERS */}
-      <section className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5">
+      <section className="reveal-init bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5">
         
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 sm:pb-3 border-b border-slate-100">
@@ -1176,7 +1225,7 @@ export default function HomePage() {
       </section>
 
       {/* 5. SECTOR PERFORMANCE RADAR */}
-      <section className="bg-slate-50/70 rounded-2xl border border-slate-200/90 p-3.5 sm:p-5 space-y-3 shadow-xs">
+      <section className="reveal-init bg-slate-50/70 rounded-2xl border border-slate-200/90 p-3.5 sm:p-5 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <PieChart className="w-4 h-4 text-emerald-600" />
@@ -1224,7 +1273,7 @@ export default function HomePage() {
       </section>
 
       {/* 6. PROVEN SCREENER INVESTMENT THEMES */}
-      <section className="space-y-3">
+      <section className="reveal-init space-y-3">
         <div className="flex items-center justify-between px-0.5">
           <div>
             <h2 className="text-sm sm:text-base font-semibold text-slate-900">
@@ -1284,7 +1333,7 @@ export default function HomePage() {
       </section>
 
       {/* 7. LIVE BSE CORPORATE ANNOUNCEMENTS & CONCALL RADAR */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs space-y-4">
+      <section className="reveal-init bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 border-b border-slate-100 gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -1413,7 +1462,7 @@ export default function HomePage() {
       </section>
 
       {/* 8. PLATFORM CAPABILITY HIGHLIGHTS */}
-      <section className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 md:p-8">
+      <section className="reveal-init bg-slate-900 text-white rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="space-y-1">
             <div className="flex items-center space-x-1.5 text-emerald-400 text-xs font-mono font-medium">

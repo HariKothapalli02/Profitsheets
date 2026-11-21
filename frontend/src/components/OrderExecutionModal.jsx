@@ -14,11 +14,38 @@ import {
   Copy, 
   Check, 
   AlertCircle, 
-  RefreshCw 
+  RefreshCw,
+  Moon,
+  Sun
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useKite } from '../context/KiteContext';
+
+// Helper: Detect live Indian market session (09:15 AM - 03:30 PM IST, Monday - Friday)
+export const getIndianMarketSession = () => {
+  const now = new Date();
+  const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+  const istDate = new Date(istString);
+  const day = istDate.getDay(); // 0 = Sunday, 6 = Saturday
+  const hours = istDate.getHours();
+  const minutes = istDate.getMinutes();
+  const totalMinutes = hours * 60 + minutes;
+
+  const isWeekday = day >= 1 && day <= 5;
+  // 09:15 AM is 555 mins, 03:30 PM is 930 mins
+  const isRegularHours = totalMinutes >= 555 && totalMinutes <= 930;
+  const isMarketOpen = isWeekday && isRegularHours;
+
+  return {
+    isOpen: isMarketOpen,
+    variety: isMarketOpen ? 'regular' : 'amo',
+    sessionLabel: isMarketOpen ? 'Regular Market' : 'AMO (After Market Order)',
+    notice: isMarketOpen
+      ? 'NSE / BSE live trading session active'
+      : 'Markets closed. Order will be dispatched as an After Market Order (AMO).'
+  };
+};
 
 export default function OrderExecutionModal({ 
   isOpen, 
@@ -31,6 +58,7 @@ export default function OrderExecutionModal({
 
   const { user, fetchCurrentUser } = useAuth();
   const { kiteApiKey } = useKite();
+  const marketSession = getIndianMarketSession();
 
   // 'BUY' | 'SELL'
   const [action, setAction] = useState(initialAction);
@@ -101,16 +129,17 @@ export default function OrderExecutionModal({
     setTimeout(() => setCopiedTag(false), 2000);
   };
 
-  const dispatchKiteBasket = (orderTag) => {
+  const dispatchKiteBasket = (orderTag, targetWindowName) => {
     const rawKey = (kiteApiKey || '').trim();
     // Default to the registered Zerodha Kite App Key (or custom configured key)
     const activeKey = rawKey || 'pplopxdr29w7pa6u';
+    const targetName = targetWindowName || ('kite_basket_' + Date.now());
 
     try {
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = 'https://kite.zerodha.com/connect/basket';
-      form.target = '_blank';
+      form.target = targetName;
 
       const apiKeyInput = document.createElement('input');
       apiKeyInput.type = 'hidden';
@@ -129,8 +158,9 @@ export default function OrderExecutionModal({
       dataInput.type = 'hidden';
       dataInput.name = 'data';
 
+      // Automatically assign 'amo' when Indian markets are closed, and 'regular' during market hours
       const basketItem = {
-        variety: 'regular',
+        variety: marketSession.variety,
         tradingsymbol: (stock.symbol || 'STOCK').toUpperCase(),
         exchange: exchange.toUpperCase(),
         transaction_type: action.toUpperCase(),
@@ -220,6 +250,45 @@ export default function OrderExecutionModal({
     // 2. Zerodha Kite Demat Broker Flow with Exact Lifecycle Tracking (tag must be max 8 chars for Zerodha)
     const orderTag = ('P' + Date.now().toString(36).slice(-4) + Math.random().toString(36).substring(2, 5)).toUpperCase().slice(0, 8);
 
+    // CRITICAL POP-UP BLOCKER FIX:
+    // Synchronously open the target tab reference during the live user click event!
+    // This permanently satisfies modern browser popup blocker security policies (Chrome, Safari, Edge, Firefox, Brave).
+    const targetWindowName = 'kite_basket_' + Date.now();
+    let preOpenedWindow = null;
+    try {
+      preOpenedWindow = window.open('about:blank', targetWindowName);
+      if (preOpenedWindow && preOpenedWindow.document) {
+        preOpenedWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Launching Zerodha Kite...</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8fafc; color: #1e293b; }
+                .card { text-align: center; background: white; padding: 2rem; border-radius: 1rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); max-width: 380px; width: 90%; }
+                .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #00965e; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                h3 { margin: 0 0 0.5rem; font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+                p { margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4; }
+                .badge { display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.5rem; background: #ecfdf5; color: #065f46; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; font-family: monospace; }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <div class="spinner"></div>
+                <h3>Connecting to Zerodha Kite</h3>
+                <p>Preparing ${stock.symbol} ${action} ${marketSession.variety === 'amo' ? '(AMO) ' : ''}basket...</p>
+                <div class="badge">${marketSession.sessionLabel.toUpperCase()}</div>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+    } catch (e) {
+      console.warn('Pre-open window blocked or failed:', e);
+    }
+
     try {
       // Step A: Save Order in MongoDB with status: 'PENDING'
       const res = await axios.post('/api/user/orders', {
@@ -230,6 +299,7 @@ export default function OrderExecutionModal({
         exchange: exchange,
         orderType: orderType,
         product: product,
+        variety: marketSession.variety,
         broker: 'Zerodha Kite',
         isDemo: false,
         tag: orderTag
@@ -240,8 +310,8 @@ export default function OrderExecutionModal({
       setManualFillPrice(priceToUse);
       setManualFillQty(Number(quantity));
 
-      // Step B: Submit order to Zerodha Kite basket tab
-      dispatchKiteBasket(orderTag);
+      // Step B: Submit order form targeting the pre-opened window!
+      dispatchKiteBasket(orderTag, targetWindowName);
 
       if (onTradeComplete) onTradeComplete();
 
@@ -250,6 +320,9 @@ export default function OrderExecutionModal({
         msg: `Order basket launched in Zerodha Kite! Order saved as PENDING in database.`
       });
     } catch (err) {
+      if (preOpenedWindow) {
+        try { preOpenedWindow.close(); } catch (_) {}
+      }
       console.error('Kite order save error:', err);
       setFeedback({
         type: 'error',
@@ -474,10 +547,10 @@ export default function OrderExecutionModal({
                       <button
                         type="button"
                         onClick={() => dispatchKiteBasket(trackedOrder.tag)}
-                        className="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1"
+                        className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Reopen Kite</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Open in Zerodha Kite</span>
                       </button>
                     </div>
                   </div>
@@ -630,6 +703,36 @@ export default function OrderExecutionModal({
                 </div>
               </div>
 
+              {/* Market Status & AMO Auto-Detection Banner */}
+              {isIndian && (
+                <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors ${
+                  marketSession.isOpen 
+                    ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' 
+                    : 'bg-amber-50/90 border-amber-200 text-amber-900'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {marketSession.isOpen ? (
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                    ) : (
+                      <Moon className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    )}
+                    <span className="font-semibold text-[11px] sm:text-xs">
+                      {marketSession.isOpen ? 'NSE / BSE Regular Live Session' : 'Market Closed • AMO Auto-Enabled'}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                    marketSession.isOpen
+                      ? 'bg-emerald-100/70 border-emerald-300 text-emerald-800'
+                      : 'bg-amber-100 border-amber-300 text-amber-800'
+                  }`}>
+                    {marketSession.variety.toUpperCase()}
+                  </span>
+                </div>
+              )}
+
               {/* Order Value & Available Balance Card */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
@@ -699,7 +802,13 @@ export default function OrderExecutionModal({
                     </>
                   ) : (
                     <>
-                      <span>{submitting ? 'Saving & Opening Kite...' : 'Send to Zerodha Kite & Track'}</span>
+                      <span>
+                        {submitting 
+                          ? 'Opening Zerodha Kite...' 
+                          : !marketSession.isOpen && isIndian 
+                          ? 'Send AMO to Zerodha Kite & Track' 
+                          : 'Send to Zerodha Kite & Track'}
+                      </span>
                       <ExternalLink className="w-4 h-4" />
                     </>
                   )}

@@ -19,7 +19,7 @@ export default function AboutPage() {
     <div className="max-w-5xl mx-auto py-8 sm:py-12 px-2 sm:px-4 space-y-12 font-sans text-slate-800">
       
       {/* 1. HERO SECTION */}
-      <section className="text-center space-y-4 max-w-3xl mx-auto">
+      <section className="reveal-init text-center space-y-4 max-w-3xl mx-auto">
         <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
           <span>Democratizing Institutional Equity Research</span>
@@ -52,7 +52,7 @@ export default function AboutPage() {
       </section>
 
       {/* 2. CORE PILLARS & ACCURATE CAPABILITIES */}
-      <section className="space-y-6">
+      <section className="reveal-init space-y-6">
         <div className="text-center space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900">What Powers ProfitSheets</h2>
           <p className="text-xs sm:text-sm text-slate-500">Every feature is designed with verifiable source data and zero marketing gimmicks.</p>
@@ -130,7 +130,7 @@ export default function AboutPage() {
       </section>
 
       {/* 3. ARCHITECTURE & SECURITY */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+      <section className="reveal-init bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
         <div className="space-y-1">
           <h2 className="text-lg sm:text-xl font-bold text-slate-900">Architecture & Data Integrity</h2>
           <p className="text-xs sm:text-sm text-slate-500">How ProfitSheets maintains sub-second query performance and protects user data.</p>

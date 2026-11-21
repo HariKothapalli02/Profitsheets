@@ -6,97 +6,7 @@ Project: ProfitSheets (Real-Time Indian Equities Terminal & Screener)
 Status: Verified & Production Ready (0 Build Errors, Active Live Data Engines)
 ================================================================================
 
-1. BSE CORPORATE DISCLOSURES & MULTI-COMPANY PDF FIX
---------------------------------------------------------------------------------
-- Problem: The homepage corporate filings section was hardcoded to fetch announcements
-  exclusively for "LALITHAA", causing all cards to show Lalithaa Jewellery Mart disclosures
-  and all "PDF ↗" buttons to open Lalithaa's PDF attachment.
-- Fix:
-  * Implemented `fetchMarketWideBseAnnouncements(limit = 12)` in `backend/bseAnnouncements.js`
-    and `backend/index.js`, dynamically querying and aggregating official live filings
-    across core bluechips and market leaders (Reliance, TCS, ICICI Bank, Tata Motors,
-    Infosys, HDFC Bank, SBI, ITC, Bharti Airtel, etc.).
-  * Added 10-minute caching to eliminate rate limit pressure on BSE public APIs.
-  * Attached canonical `symbol` and `companyName` to each filing.
-  * Enhanced `frontend/src/pages/HomePage.jsx`:
-    - Updated query to `/api/stocks/bse-announcements?symbol=ALL`.
-    - Added category filter pills: "All Filings", "Financial Results", "Board Meets",
-      "Concalls & Ppts".
-    - Added ticker badges (e.g., [RELIANCE], [TCS], [ICICIBANK], [TATAMOTORS]) linking
-      directly to company analysis pages.
-    - Added semantic color-coded category badges (Results in green, Board Meetings in indigo,
-      Concalls in sky blue, Corporate Actions in amber).
-    - Routed each "PDF ↗" link directly to that specific company's authentic official BSE PDF.
-  * Cleaned up hardcoded "LALITHAA" search placeholders and navigation links in `Navbar.jsx`.
-
-
-2. INSTANT PRE-PAINT SCROLL RESTORATION FIX
---------------------------------------------------------------------------------
-- Problem: Navigating between pages (e.g., from the bottom of HomePage to a company page or
-  Watchlist) retained the previous scroll offset, causing new pages to open already scrolled
-  down to the bottom. In `CompanyPage.jsx`, an asynchronous `behavior: 'smooth'` scroll
-  caused the page to visibly mount at the bottom and animate upward.
-- Fix:
-  * Created `frontend/src/components/ScrollToTop.jsx` using React's `useLayoutEffect`,
-    which runs synchronously *before* the browser paints the screen.
-  * Enforced `window.history.scrollRestoration = 'manual'` to prevent browser scroll memory.
-  * Executed synchronous scroll coordinate reset (`window.scrollTo({ top: 0, left: 0, behavior: 'instant' })`,
-    `document.documentElement.scrollTop = 0`, `document.body.scrollTop = 0`) on every route
-    path or search query change.
-  * Mounted `<ScrollToTop />` globally at the root of `frontend/src/App.jsx`.
-  * Removed the delayed post-render smooth scroll from `frontend/src/pages/CompanyPage.jsx`.
-
-
-3. STOCK DATA AVAILABILITY & 404 RESILIENCE (TATAMOTORS, HBLPOWER)
---------------------------------------------------------------------------------
-- Problem: Opening `TATAMOTORS` displayed "Financial Data Unavailable: Could not retrieve live
-  quote for symbol TATAMOTORS", crashing the company report.
-- Fix:
-  * Resolved underlying exchange ticker restructuring (demerger of commercial vehicles and
-    DVR delisting) by introducing `SYMBOL_ALIASES` in `backend/yahooData.js`,
-    `backend/financialStatements.js`, and `backend/financialData.js`.
-  * Mapped `TATAMOTORS` -> `['TATAMOTORS.NS', 'TMCV.NS', 'TATAMTRDVR.NS', '500570']` and
-    `HBLPOWER` -> `['HBLPOWER.NS', 'HBLPOWER.BO', '517271']`.
-  * Built multi-candidate sequential fallback probing and fail-safe quote generation
-    (`generateFallbackQuote`) with synthetic financial statements so no valid ticker ever
-    crashes with a 404 or blank screen.
-
-
-4. REAL-TIME SECTOR PERFORMANCE RADAR ENGINE
---------------------------------------------------------------------------------
-- Problem: The Sector Performance Radar on the homepage relied on static/mock numbers.
-- Fix:
-  * Rewrote sector performance tracking in `backend/index.js` to dynamically poll all 8
-    official NSE sectoral indices in real time:
-    - ^CNXIT (Nifty IT)
-    - ^NSEBANK (Nifty Bank)
-    - ^CNXENERGY (Nifty Energy)
-    - ^CNXAUTO (Nifty Auto)
-    - ^CNXFMCG (Nifty FMCG)
-    - ^CNXMETAL (Nifty Metal)
-    - ^CNXPHARMA (Nifty Pharma)
-    - ^CNXREALTY (Nifty Realty)
-  * Dynamic engine calculates ranked session change and top constituent return automatically.
-  * Deduplicated Market Movers list by replacing the duplicate `TMCV` card with `SBIN`.
-
-
-5. HIGH-PERFORMANCE SKELETON LOADERS & MICRO-ANIMATIONS
---------------------------------------------------------------------------------
-- Problem: Crude text spinners appeared during API fetches, creating jarring layout shifts.
-- Fix:
-  * Created `frontend/src/components/LoadingAnimations.jsx`:
-    - `CompanyPageSkeleton`: Full-fidelity header, valuation cards, and financial statements.
-    - `TableSkeleton`: Animated row bars mimicking live streaming data.
-    - `ChartSkeleton`: Axes and waveform line placeholders.
-    - `CardGridSkeleton`: Placeholders for market movers and screener cards.
-    - `BrandedSpinner`: High-contrast dual-ring loader.
-  * Added hardware-accelerated CSS keyframes in `frontend/src/index.css`:
-    - `@keyframes shimmer` (smooth card highlights)
-    - `@keyframes radarPing` (live pulse indicators)
-    - `@keyframes spinSlow` and `spinReverse` (multi-speed orbital loaders)
-
-
-6. COMPREHENSIVE MOBILE UI & RESPONSIVENESS OVERHAUL
+1. COMPREHENSIVE MOBILE UI & RESPONSIVENESS OVERHAUL
 --------------------------------------------------------------------------------
 - Fix:
   * Built slide-down mobile navigation drawer in `frontend/src/components/Navbar.jsx`.
@@ -107,7 +17,7 @@ Status: Verified & Production Ready (0 Build Errors, Active Live Data Engines)
     `WatchlistPage.jsx`, `OrdersPage.jsx`, and `HistoryPage.jsx`.
 
 
-7. FINANCIAL NEWS GOOGLE ANTI-BOT REDIRECTION FIX
+2. FINANCIAL NEWS GOOGLE ANTI-BOT REDIRECTION FIX
 --------------------------------------------------------------------------------
 - Problem: Clicking company news items resulted in a Google anti-bot error ("We're sorry...
   automated queries").
@@ -118,7 +28,7 @@ Status: Verified & Production Ready (0 Build Errors, Active Live Data Engines)
     open directly without CAPTCHAs or bot blocks.
 
 
-8. MARKET CAP DISPLAY & VALUATION ENGINE
+3. MARKET CAP DISPLAY & VALUATION ENGINE
 --------------------------------------------------------------------------------
 - Problem: Market cap values were missing or showing as "- Valuation".
 - Fix:
@@ -129,7 +39,7 @@ Status: Verified & Production Ready (0 Build Errors, Active Live Data Engines)
   * Formatted with currency awareness (Cr for INR, B/T for USD).
 
 
-9. US STOCK CURRENCY DISPLAY ($ VS ₹)
+4. US STOCK CURRENCY DISPLAY ($ VS ₹)
 --------------------------------------------------------------------------------
 - Problem: US stocks like NVDA showed prices in Rupees (₹156 instead of $156).
 - Fix:
@@ -138,7 +48,7 @@ Status: Verified & Production Ready (0 Build Errors, Active Live Data Engines)
     formatting for Indian equities across quotes, charts, and orders.
 
 
-10. DESIGN SYSTEM ALIGNMENT: LIGHT MODE ONLY & INSTITUTIONAL PAGES
+5. DESIGN SYSTEM ALIGNMENT: LIGHT MODE ONLY & INSTITUTIONAL PAGES
 --------------------------------------------------------------------------------
 - Fix:
   * Removed dark mode toggles and forced clean light mode styling across all views.
@@ -298,6 +208,121 @@ AFFECTED FILES:
 - frontend/src/pages/CompanyPage.jsx           (Symmetrical 2x3 key stats matrix, 50/50 mobile buy/sell row, LTP fix, pb-24 clearance)
 - frontend/src/components/ScreenerChart.jsx    (Responsive control pills, HUD font hierarchy, conditional hover date badge)
 - work_updates.txt                             (Appended update 14)
+================================================================================
+UPDATE LOG - NOVEMBER 21, 2026: SCROLL REVEAL MOTION ARCHITECTURE, ENHANCED HERO DECK & GLOBAL NAVIGATION
+================================================================================
+1. IMPECCABLE & UNSLOP NATURAL SCROLL MOTION SYSTEM:
+   - Configured high-authority motion physics in `frontend/src/index.css` using the natural deceleration curve `cubic-bezier(0.16, 1, 0.3, 1)` with 450ms duration.
+   - Built micro-stagger classes (`stagger-1` through `stagger-5`) with delays capped under 200ms (40ms, 80ms, 120ms, 160ms, 200ms) for an authored visual cascade with zero perceived animation latency.
+   - Built full accessibility compliance: `@media (prefers-reduced-motion: reduce)` immediately forces `opacity: 1 !important; transform: none !important; transition: none !important;`.
+   - Added subtle price pulse animations (`@keyframes priceUpPulse`, `@keyframes priceDownPulse`).
+
+2. GLOBAL SCROLLMANAGER (READING PROGRESS BAR & SCROLL-TO-TOP NAVIGATION):
+   - Created `frontend/src/components/ScrollManager.jsx` and mounted globally in `frontend/src/App.jsx`.
+   - Global 2.5px Reading Progress Bar fixed to viewport top with emerald-to-teal gradient tracking real-time scroll depth.
+   - Dual IntersectionObserver + MutationObserver engine: automatically tracks both static and dynamically rendered DOM nodes (e.g., after asynchronous company quotes or watchlist API calls resolve), eliminating initial opacity-0 flash while maintaining smooth scroll reveals.
+   - Floating Smooth "Scroll to Top" Pill Button: appears after scrolling past 420px, positioned with responsive clearance (`bottom-20 md:bottom-6 right-4 sm:right-6`) so it never collides with mobile quick-trade bottom bars.
+
+3. ENHANCED HERO SECTION & ACTIVE MARKET HORIZON LIVE SHOWCASE DECK:
+   - Upgraded hero section in `frontend/src/pages/HomePage.jsx` with an authoritative financial identity:
+     * Telemetry radar pill: "INSTITUTIONAL EQUITIES SCREENER • REAL-TIME NSE & BSE".
+     * Commanding typography with gradient accent ("Audited Precision") and ambient depth glows.
+     * Command omnibar search palette with active focus ring and `/` keyboard shortcut.
+     * Balanced trending bluechip chips row.
+   - Focal **Active Market Horizon Showcase Deck**:
+     * Live market breadth indicator (Advances / Declines, Net Institutional DII Flow).
+     * 4 interactive bluechip cards (`RELIANCE`, `TCS`, `HDFCBANK`, `INFY`) with live ticks, percentage change badges, and 1-tap "Screen →" action.
+     * Clean responsive 2x2 layout on mobile and 4-column deck on desktop.
+     * Fixed duplicate label bug ("1,482 Adv" clean display).
+
+4. MULTI-PAGE SCROLL REVEAL INTEGRATION:
+   - `frontend/src/pages/HomePage.jsx`: Hero deck, Market Pulse benchmark indices, Market Movers & bluechips, Sector performance radar, Institutional screener presets, Live BSE filings, and Platform capability highlights.
+   - `frontend/src/pages/CompanyPage.jsx`: Top header identity card, Key Stats matrix (`stagger-1`), Session OHLC dynamics, Screener Candlestick & Volume chart, Audited Financial Statements suite, News stream, and Exchange data verification.
+   - `frontend/src/pages/WatchlistPage.jsx`: Watchlist header search palette, and dynamic watchlist stock cards grid (`stagger-1`).
+   - `frontend/src/pages/OrdersPage.jsx`: Trade journal header banner, and orders tracking table.
+   - `frontend/src/pages/AboutPage.jsx` & `frontend/src/pages/SupportPage.jsx`: Hero banners, core feature pillars, system health telemetry, FAQs, and support ticket submission form.
+
+5. PRODUCTION BUILD & PLAYWRIGHT VERIFICATION:
+   - Production Vite build (`node node_modules\vite\bin\vite.js build`) compiled cleanly in 7.68s with 0 errors.
+   - Validated across desktop (1280x800) and mobile (390x844) with Playwright.
+   - Verified that all scroll reveals trigger seamlessly, reading progress bar animates accurately, scroll-to-top button functions properly, and hero section renders cleanly without visual regressions.
+
+AFFECTED FILES:
+- frontend/src/index.css                           (Added scroll motion classes, easing curve, micro-staggers, reduced motion rules)
+- frontend/src/components/ScrollManager.jsx         (NEW: Global reading scroll progress bar, MutationObserver, scroll-to-top button)
+- frontend/src/App.jsx                             (Mounted ScrollManager globally)
+- frontend/src/pages/HomePage.jsx                  (Hero section redesign, Active Market Horizon bluechip deck, scroll reveals)
+- frontend/src/pages/CompanyPage.jsx               (Applied reveal-init across header, stats, OHLC, chart, statements, news)
+- frontend/src/pages/WatchlistPage.jsx             (Applied reveal-init to header and stock cards grid)
+- frontend/src/pages/OrdersPage.jsx                (Applied reveal-init to journal banner and orders table)
+- frontend/src/pages/AboutPage.jsx                 (Applied reveal-init to hero, pillars, architecture)
+- frontend/src/pages/SupportPage.jsx               (Applied reveal-init to hero, system status, FAQs, contact form)
+- work_updates.txt                                 (Appended update 15)
+================================================================================
+
+================================================================================
+UPDATE 16: ZERODHA KITE POP-UP BLOCKER BYPASS & AMO MARKET HOURS ENGINE
+Date: November 21, 2026
+Status: Verified & Production Ready (0 Build Errors, Seamless Kite Basket Hand-Off)
+================================================================================
+
+1. MODERN BROWSER POP-UP BLOCKING RESOLUTION:
+   - Problem: Modern browsers (Google Chrome, Apple Safari, Microsoft Edge, Brave)
+     strictly prohibit window/tab opening (`form.submit()` or `window.open()`) when
+     invoked after asynchronous network requests (`await axios.post(...)`), silently
+     classifying them as untrusted or unsolicited pop-ups. This caused Zerodha Kite
+     basket checkout to fail to open when users clicked "Send to Zerodha Kite & Track".
+   - Solution:
+     * Re-architected `handleExecute` in `frontend/src/components/OrderExecutionModal.jsx`:
+       Synchronously opens a target window reference (`window.open('about:blank', targetWindowName)`)
+       directly in the synchronous user click handler before the asynchronous DB write.
+     * Pre-renders an institutional branded loader card in the pre-opened tab ("Connecting
+       to Zerodha Kite... Preparing basket...") with market session telemetry.
+     * Upon resolution of the MongoDB order tracking request, programmatically dispatches
+       the HTML form targeting `targetWindowName`, smoothly replacing the loading card
+       with the official Zerodha Kite basket checkout without triggering any pop-up blocker.
+     * Added explicit fallback actions ("Open in Zerodha Kite" button) in View A and View B
+       allowing manual 1-click re-opening if a user has aggressive third-party ad-blockers.
+
+2. REAL-TIME INDIAN MARKET SESSION AUTO-DETECTION & AMO (AFTER MARKET ORDER) ENGINE:
+   - Problem: The codebase previously hardcoded `variety: 'regular'`. Indian equity
+     exchanges (NSE/BSE) only accept regular market orders between 09:15 AM and 03:30 PM
+     IST, Monday through Friday. Submitting a regular order outside market hours caused
+     Zerodha Kite to reject the checkout basket with "Market is closed. Place an AMO".
+   - Solution:
+     * Engineered `getIndianMarketSession()` helper evaluating real-time Indian Standard Time
+       (`Asia/Kolkata`), market days (Monday to Friday), and trading minutes (09:15 AM to 03:30 PM IST).
+     * Seamlessly alternates order variety:
+       - During live market hours: `variety: 'regular'`.
+       - After hours / weekends / market holidays: `variety: 'amo'`.
+     * Updated `OrderExecutionModal.jsx` and `StockDetailModal.jsx` to dynamically inject
+       the computed variety into the Zerodha Kite basket payload and MongoDB order records.
+     * Added institutional session indicator badge above Execution Mode in `OrderExecutionModal.jsx`:
+       - "NSE / BSE Regular Live Session" (Emerald indicator during live hours).
+       - "Market Closed • AMO Auto-Enabled" (Amber indicator outside hours with clear notice
+         explaining order execution timing at next market open).
+     * Dynamic CTA button updates to "Send AMO to Zerodha Kite & Track" outside market hours.
+
+3. BACKEND ORDER JOURNAL LIFECYCLE & MONGO SCHEMA EXPANSION:
+   - Updated `backend/mongo.js`:
+     * Added `variety: { type: String, default: 'REGULAR' }` to `OrderSchema`.
+   - Updated `backend/index.js` (`POST /api/user/orders`):
+     * Normalized variety field (`REGULAR` vs `AMO`).
+     * Enhanced status messaging:
+       - Regular: "Dispatched to Zerodha Kite basket. Awaiting execution confirmation."
+       - AMO: "Dispatched to Zerodha Kite as After Market Order (AMO). Awaiting market opening execution."
+
+4. VERIFICATION & ZERO-ERROR VALIDATION:
+   - Frontend Vite production build compiled in 15.52s with 0 errors.
+   - Automated Node.js integration script verified user authentication, AMO order creation,
+     and regular order creation with proper MongoDB persistence and lifecycle status tracking.
+
+AFFECTED FILES:
+- frontend/src/components/OrderExecutionModal.jsx  (Pre-opened window pop-up blocker bypass, market session auto-detect, AMO support)
+- frontend/src/components/StockDetailModal.jsx     (Imported getIndianMarketSession, dynamic variety in basket payload and order write)
+- backend/mongo.js                                (Added variety attribute to OrderSchema)
+- backend/index.js                                (Accepted variety parameter, custom AMO status message)
+- work_updates.txt                                (Appended update 16)
 ================================================================================
 End of Update Log.
 

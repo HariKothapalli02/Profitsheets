@@ -140,6 +140,84 @@
   animation: pulseGlow 3s ease-in-out infinite;
 }
 
+/* ==========================================================================
+   Impeccable & Unslop Natural Scroll Reveal Motion System
+   Easing: cubic-bezier(0.16, 1, 0.3, 1) - Natural, authoritative deceleration
+   ========================================================================== */
+html {
+  scroll-behavior: smooth;
+}
+
+.reveal-init {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-init.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-scale-init {
+  opacity: 0;
+  transform: scale(0.97) translateY(8px);
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-scale-init.revealed {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Micro Stagger Delays (capped under 200ms for zero animation latency) */
+.stagger-1 { transition-delay: 40ms; }
+.stagger-2 { transition-delay: 80ms; }
+.stagger-3 { transition-delay: 120ms; }
+.stagger-4 { transition-delay: 160ms; }
+.stagger-5 { transition-delay: 200ms; }
+
+/* Price tick pulse animations */
+@keyframes priceUpPulse {
+  0% { background-color: rgba(16, 185, 129, 0.25); color: #047857; }
+  100% { background-color: transparent; }
+}
+
+@keyframes priceDownPulse {
+  0% { background-color: rgba(244, 63, 94, 0.25); color: #be123c; }
+  100% { background-color: transparent; }
+}
+
+.animate-price-up {
+  animation: priceUpPulse 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-price-down {
+  animation: priceDownPulse 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Accessibility: Full Reduced Motion Compliance */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  .reveal-init,
+  .reveal-scale-init {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .animate-ticker,
+  .animate-shimmer,
+  .animate-radar,
+  .animate-glow-float,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+}
+
 /* Hide scrollbar for horizontal swipe chips and tabs */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

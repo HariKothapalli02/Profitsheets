@@ -61,7 +61,7 @@ export default function SupportPage() {
     <div className="max-w-5xl mx-auto py-8 sm:py-12 px-2 sm:px-4 space-y-12 font-sans text-slate-800">
       
       {/* 1. HEADER */}
-      <section className="text-center space-y-3 max-w-2xl mx-auto">
+      <section className="reveal-init text-center space-y-3 max-w-2xl mx-auto">
         <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium">
           <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
           <span>ProfitSheets Help & Support Desk</span>
@@ -75,7 +75,7 @@ export default function SupportPage() {
       </section>
 
       {/* 2. LIVE EXCHANGE TIMINGS & SYSTEM HEALTH */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs">
+      <section className="reveal-init bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center space-x-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -111,7 +111,7 @@ export default function SupportPage() {
       </section>
 
       {/* 3. FREQUENTLY ASKED QUESTIONS */}
-      <section className="space-y-4">
+      <section className="reveal-init space-y-4">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-slate-900">Frequently Asked Questions</h2>
           <p className="text-xs text-slate-500">Answers to common inquiries regarding data sources, order dispatch, and accounts.</p>
@@ -149,7 +149,7 @@ export default function SupportPage() {
       </section>
 
       {/* 4. DIRECT CONTACT / TICKET FORM */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+      <section className="reveal-init bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-slate-900">Submit a Support Request</h2>
           <p className="text-xs sm:text-sm text-slate-500">
