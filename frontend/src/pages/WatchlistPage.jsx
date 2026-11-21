@@ -103,7 +103,7 @@ export default function WatchlistPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 font-sans">
+    <div className="space-y-6 w-full max-w-[1720px] mx-auto pb-16 font-sans">
       
       {/* 1. Header (Unslopped, Clean Origin-UI Style) */}
       <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Lock, X, ArrowRight, ShieldCheck, UserPlus, LogIn } from 'lucide-react';
 
@@ -12,10 +13,12 @@ export default function AuthRequiredModal({ isOpen, onClose, symbol = '', action
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [isOpen, onClose]);
 
@@ -33,21 +36,18 @@ export default function AuthRequiredModal({ isOpen, onClose, symbol = '', action
     navigate(`/signup?redirect=${encodeURIComponent(returnUrl)}`);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
+  const modalContent = (
+    <div 
+      className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen min-h-screen z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto"
+      onClick={onClose}
+    >
       {/* Origin UI Modal Card */}
       <div 
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="relative w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 sm:p-7 space-y-5 z-10 animate-in zoom-in-95 duration-150 font-sans"
+        className="relative w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 sm:p-7 space-y-5 z-10 animate-in zoom-in-95 duration-150 font-sans my-auto"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
@@ -107,5 +107,9 @@ export default function AuthRequiredModal({ isOpen, onClose, symbol = '', action
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }
 

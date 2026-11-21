@@ -2,61 +2,65 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="bg-white border-t border-slate-200 mt-auto py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+    <footer className="bg-white border-t border-slate-200/90 mt-auto font-sans text-slate-600">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
+        
+        {/* Main Single Row: Brand & Inline Navigation */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-100">
           
-          {/* Left Brand */}
-          <div className="space-y-2">
-            <Link to="/" className="inline-block">
+          {/* Left: Logo & Tagline */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
+            <Link to="/" className="inline-block shrink-0">
               <img 
                 src="/logo.png" 
-                alt="ProfitSheets - investments made simple" 
-                className="h-8 sm:h-9 w-auto object-contain opacity-95 hover:opacity-100 transition-opacity"
+                alt="ProfitSheets" 
+                className="h-7 w-auto object-contain hover:opacity-95 transition-opacity"
               />
             </Link>
+            <span className="hidden sm:inline text-slate-300">•</span>
             <p className="text-xs text-slate-500 font-medium">
               Stock analysis and screening tool for investors in India.
             </p>
           </div>
 
-          {/* Right Links matching Screener Layout */}
-          <div className="flex flex-wrap items-start gap-12 sm:gap-16 text-xs">
-            <div className="space-y-2">
-              <h4 className="font-bold text-slate-800">Product</h4>
-              <ul className="space-y-1.5 text-slate-500">
-                <li>
-                  <Link to="/" className="hover:text-slate-800 transition-colors">Screens</Link>
-                </li>
-                <li>
-                  <Link to="/watchlist" className="hover:text-slate-800 transition-colors">Watchlist</Link>
-                </li>
-                <li>
-                  <Link to="/orders" className="hover:text-slate-800 transition-colors">Paper Trading</Link>
-                </li>
-              </ul>
-            </div>
+          {/* Right: Clean Minimalist Nav Links */}
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-slate-600">
+            <Link to="/" className="hover:text-emerald-700 transition-colors">
+              Screens
+            </Link>
+            <Link to="/watchlist" className="hover:text-emerald-700 transition-colors">
+              Watchlist
+            </Link>
+            <Link to="/orders" className="hover:text-emerald-700 transition-colors">
+              Paper Trading
+            </Link>
+            <Link to="/about" className="hover:text-emerald-700 transition-colors">
+              About us
+            </Link>
+            <Link to="/support" className="hover:text-emerald-700 transition-colors">
+              Support
+            </Link>
+          </nav>
 
-            <div className="space-y-2">
-              <h4 className="font-bold text-slate-800">Team</h4>
-              <ul className="space-y-1.5 text-slate-500">
-                <li>
-                  <Link to="/about" className="hover:text-slate-800 transition-colors">About us</Link>
-                </li>
-                <li>
-                  <Link to="/support" className="hover:text-slate-800 transition-colors">Support</Link>
-                </li>
-              </ul>
-            </div>
+        </div>
+
+        {/* Bottom Row: Compact Copyright & Live Telemetry Tags */}
+        <div className="pt-3.5 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2 text-center sm:text-left">
+          <p>© {currentYear} ProfitSheets Technologies India. All rights reserved.</p>
+          <div className="flex items-center gap-2 font-mono text-[10px]">
+            <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              NSE & BSE REAL-TIME
+            </span>
+            <span className="text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-medium">
+              ZERODHA KITE READY
+            </span>
           </div>
-
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2">
-          <p>© {new Date().getFullYear()} ProfitSheets. Live NSE & BSE Indian Equities Engine.</p>
-          <p>Zerodha Kite 1-Click Order Execution Enabled.</p>
-        </div>
       </div>
     </footer>
   );

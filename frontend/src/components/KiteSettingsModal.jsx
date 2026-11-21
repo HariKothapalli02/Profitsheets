@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Key, CheckCircle, ExternalLink, ShieldCheck, Zap, Copy, Check } from 'lucide-react';
 import { useKite } from '../context/KiteContext';
 
@@ -8,6 +9,20 @@ export default function KiteSettingsModal() {
   const [statusMsg, setStatusMsg] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copiedRedirect, setCopiedRedirect] = useState(false);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isModalOpen]);
 
   if (!isModalOpen) return null;
 
@@ -28,9 +43,15 @@ export default function KiteSettingsModal() {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden transform transition-all">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen min-h-screen z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto"
+      onClick={() => setIsModalOpen(false)}
+    >
+      <div 
+        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white p-6 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -147,4 +168,8 @@ export default function KiteSettingsModal() {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

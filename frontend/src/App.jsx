@@ -25,8 +25,8 @@ export default function App() {
       {/* Authentic Screener.in Top Header */}
       <Navbar />
 
-      {/* Main Screener Viewport - Mobile-optimized padding for edge-to-edge alignment */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-3 sm:py-5">
+      {/* Main Screener Viewport - Expanded container for full screen utilization without awkward side gaps */}
+      <main className="flex-1 w-full max-w-[1720px] mx-auto px-2.5 sm:px-6 lg:px-8 xl:px-10 py-2.5 sm:py-5">
         <Routes>
           {/* 1. Root Homepage */}
           <Route path="/" element={<HomePage />} />

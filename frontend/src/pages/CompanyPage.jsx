@@ -97,17 +97,19 @@ export default function CompanyPage() {
   const fetchCompanyData = async (retryCount = 0) => {
     setLoading(true);
     try {
-      const res = await axios.get(`/api/stocks/financials?symbol=${encodeURIComponent(currentSymbol)}`);
-      if (res.data) {
+      const res = await axios.get(`/api/stocks/financials?symbol=${encodeURIComponent(currentSymbol)}`, { timeout: 15000 });
+      if (res.data && res.data.symbol) {
         setData(res.data);
+        setLoading(false);
+        return;
       }
+      throw new Error('Invalid or empty payload');
     } catch (err) {
-      console.warn('Failed to load company financials:', err);
-      if (retryCount < 2) {
+      console.warn(`Failed to load company financials for ${currentSymbol} (attempt ${retryCount + 1}):`, err);
+      if (retryCount < 3) {
         setTimeout(() => fetchCompanyData(retryCount + 1), 1000);
         return;
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -201,146 +203,163 @@ export default function CompanyPage() {
   const isUSD = currencySymbol === '$';
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-16 font-sans">
+    <div className="space-y-4 w-full max-w-[1720px] mx-auto pb-24 md:pb-16 font-sans">
       
       {/* 1. TOP HEADER & LIVE EXCHANGE TICK CARD */}
-      <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-6">
+      <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5 sm:space-y-5">
         
         {/* Main Header Container */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b border-slate-100">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 sm:gap-5 pb-3.5 sm:pb-5 border-b border-slate-100">
           
           {/* Left Column: Identity & Badges */}
-          <div className="flex items-start space-x-3.5 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center font-black text-base shrink-0 tracking-tight select-none">
+          <div className="flex items-start space-x-3 sm:space-x-3.5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center font-black text-sm sm:text-base shrink-0 tracking-tight select-none">
               {data.symbol === 'RELIANCE' ? '₹' : (data.symbol === 'NVDA' ? '$' : data.symbol.substring(0, 2))}
             </div>
 
-            <div className="space-y-1.5 min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            <div className="space-y-1 sm:space-y-1.5 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h1 className="text-base sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
                   {data.name}
                 </h1>
                 <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                   {data.symbol}
                 </span>
                 {data.bseScripCode && data.bseScripCode !== '-' && (
-                  <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                  <span className="font-mono text-[10px] sm:text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
                     BSE: {data.bseScripCode}
                   </span>
                 )}
               </div>
 
               {/* Status Pips & Meta Info */}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
-                  <span className="relative flex h-2 w-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-500 font-medium">
+                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                  <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-emerald-500"></span>
                   </span>
                   {isIndian ? 'NSE LIVE' : `${data.exchange || 'NASDAQ'} LIVE`}
                 </span>
                 <span className="text-slate-300">•</span>
                 <span className="font-mono text-slate-700 font-semibold">{data.exchange || 'NSE'}</span>
                 <span className="text-slate-300">•</span>
-                <span className="text-slate-400 font-mono text-[11px]">Token: {data.token || 'Active'}</span>
+                <span className="text-slate-400 font-mono text-[10px] sm:text-[11px]">Token: {data.token || 'Active'}</span>
                 <span className="text-slate-300">•</span>
-                <span className="text-emerald-700 font-semibold text-[11px] flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="text-emerald-700 font-semibold text-[10px] sm:text-[11px] flex items-center gap-1">
+                  <ShieldCheck className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                   BSE Filings Verified
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Price Display & Action Buttons */}
-          <div className="flex items-center justify-between md:justify-end gap-4 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+          {/* Right Column: Price Display & Immediate Quick Trade Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between md:justify-end gap-3 sm:gap-4 shrink-0 pt-2.5 md:pt-0 border-t md:border-t-0 border-slate-100">
             
-            {/* Live Price Block with Tabular Figures */}
-            <div className="text-left md:text-right">
-              <div className="flex items-baseline md:justify-end gap-2 font-mono">
-                <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
-                  {currencySymbol}{Number(data.currentPrice).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                <span className={`inline-flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 rounded-md tabular-nums ${
-                  isPositive 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                    : 'bg-rose-50 text-rose-700 border border-rose-200'
-                }`}>
-                  {isPositive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                  {isPositive ? '+' : ''}{data.changePercent || '0.00'}%
-                </span>
+            {/* Live Price Block & Follow Button in neat horizontal bar on mobile */}
+            <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+              <div className="text-left sm:text-right">
+                <div className="flex items-baseline sm:justify-end gap-1.5 sm:gap-2 font-mono">
+                  <span className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
+                    {currencySymbol}{Number(data.currentPrice).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className={`inline-flex items-center gap-0.5 text-[11px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md tabular-nums ${
+                    isPositive 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}>
+                    {isPositive ? <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <ArrowDownRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                    {isPositive ? '+' : ''}{data.changePercent || '0.00'}%
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 font-mono mt-0.5">
+                  Prev Close: {currencySymbol}{Number(data.previousClose || 0).toFixed(2)}
+                </p>
               </div>
-              <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                Prev Close: {currencySymbol}{Number(data.previousClose || 0).toFixed(2)}
-              </p>
+
+              {/* Follow / Watchlist Button */}
+              <button
+                onClick={handleToggleWatchlist}
+                aria-label={isWatchlisted ? `Unfollow ${data.symbol}` : `Follow ${data.symbol}`}
+                className={`inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-semibold tracking-wide transition-all shadow-2xs cursor-pointer select-none shrink-0 ${
+                  isWatchlisted
+                    ? 'bg-slate-900 hover:bg-slate-800 text-white border border-slate-900'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-300'
+                }`}
+              >
+                {isWatchlisted ? (
+                  <>
+                    <Bookmark className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+                    <span>FOLLOWING</span>
+                    <Check className="w-3 h-3 text-emerald-400" />
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="w-3.5 h-3.5 text-slate-500" />
+                    <span>+ FOLLOW</span>
+                  </>
+                )}
+              </button>
             </div>
 
-            {/* Follow / Watchlist Button */}
-            <button
-              onClick={handleToggleWatchlist}
-              aria-label={isWatchlisted ? `Unfollow ${data.symbol}` : `Follow ${data.symbol}`}
-              className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all shadow-2xs cursor-pointer select-none ${
-                isWatchlisted
-                  ? 'bg-slate-900 hover:bg-slate-800 text-white border border-slate-900'
-                  : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-300'
-              }`}
-            >
-              {isWatchlisted ? (
-                <>
-                  <Bookmark className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-                  <span>FOLLOWING</span>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                </>
-              ) : (
-                <>
-                  <Bookmark className="w-3.5 h-3.5 text-slate-500" />
-                  <span>+ FOLLOW</span>
-                </>
-              )}
-            </button>
+            {/* Quick Action Buttons Group (Direct BUY & SELL) */}
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+              <button
+                type="button"
+                onClick={() => handleOpenOrder('BUY')}
+                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#00965e] hover:bg-[#007f50] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                <span>BUY</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenOrder('SELL')}
+                className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#df1d44] hover:bg-[#c21437] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
+              >
+                <ArrowDownRight className="w-3.5 h-3.5" />
+                <span>SELL</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* 2. REAL MARKET STATS GRID */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-0.5">
-          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Market Cap</span>
-            <p className="font-mono font-bold text-slate-900 text-sm sm:text-base tabular-nums">{data.marketCap || '-'}</p>
-            <span className="text-[10px] text-slate-400 font-mono block">Valuation</span>
+        {/* 2. REAL INSTITUTIONAL KEY STATS MATRIX */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5 pt-0.5">
+          <div className="bg-slate-50/80 hover:bg-slate-100/70 p-2 sm:p-2.5 rounded-xl border border-slate-200/80 transition-colors">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Market Cap</span>
+            <p className="font-mono font-black text-slate-900 text-xs sm:text-sm mt-0.5 tabular-nums truncate">{data.marketCap || '-'}</p>
           </div>
 
-          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Stock P/E</span>
-            <p className="font-mono font-bold text-slate-900 text-sm sm:text-base tabular-nums">{data.stockPE || '24.5'}</p>
-            <span className="text-[10px] text-slate-400 font-mono block">Price to Earnings</span>
+          <div className="bg-slate-50/80 hover:bg-slate-100/70 p-2 sm:p-2.5 rounded-xl border border-slate-200/80 transition-colors">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Stock P/E</span>
+            <p className="font-mono font-black text-slate-900 text-xs sm:text-sm mt-0.5 tabular-nums truncate">{data.stockPE || '24.5'}</p>
           </div>
 
-          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">ROCE / ROE</span>
-            <p className="font-mono font-bold text-emerald-700 text-sm sm:text-base tabular-nums">{data.roce || '21.4%'} / {data.roe || '18.5%'}</p>
-            <span className="text-[10px] text-slate-400 font-mono block">Capital Return</span>
+          <div className="bg-slate-50/80 hover:bg-slate-100/70 p-2 sm:p-2.5 rounded-xl border border-slate-200/80 transition-colors">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">ROCE / ROE</span>
+            <p className="font-mono font-black text-emerald-700 text-xs sm:text-sm mt-0.5 tabular-nums truncate">{data.roce || '21.4%'} / {data.roe || '18.5%'}</p>
           </div>
 
-          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Book Value</span>
-            <p className="font-mono font-bold text-slate-900 text-sm sm:text-base tabular-nums">
+          <div className="bg-slate-50/80 hover:bg-slate-100/70 p-2 sm:p-2.5 rounded-xl border border-slate-200/80 transition-colors">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Book Value</span>
+            <p className="font-mono font-black text-slate-900 text-xs sm:text-sm mt-0.5 tabular-nums truncate">
               {data.bookValue ? data.bookValue.replace(/₹/g, currencySymbol) : `${currencySymbol} 112.50`}
             </p>
-            <span className="text-[10px] text-slate-400 font-mono block">Per Share Net Worth</span>
           </div>
 
-          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">52-Week Range</span>
-            <p className="font-mono font-semibold text-slate-800 text-xs sm:text-sm tabular-nums">
+          <div className="bg-slate-50/80 hover:bg-slate-100/70 p-2 sm:p-2.5 rounded-xl border border-slate-200/80 transition-colors">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">52-Week Range</span>
+            <p className="font-mono font-bold text-slate-800 text-[11px] sm:text-xs mt-0.5 tabular-nums truncate">
               {data.highLow ? data.highLow.replace(/₹/g, currencySymbol) : '-'}
             </p>
-            <span className="text-[10px] text-slate-400 font-mono block">Yearly bounds</span>
           </div>
 
-          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/70 space-y-1 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Delivery %</span>
-            <p className="font-mono font-bold text-emerald-700 text-sm sm:text-base tabular-nums">{data.deliveryAnalytics?.deliveryPercent || '48.5%'}</p>
-            <span className="text-[10px] text-slate-400 font-mono block">{isIndian ? 'BSE Bhavcopy' : 'Market Volume'}</span>
+          <div className="bg-slate-50/80 hover:bg-slate-100/70 p-2 sm:p-2.5 rounded-xl border border-slate-200/80 transition-colors">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Delivery %</span>
+            <p className="font-mono font-black text-emerald-700 text-xs sm:text-sm mt-0.5 tabular-nums truncate">{data.deliveryAnalytics?.deliveryPercent || '48.5%'}</p>
           </div>
         </div>
 
@@ -378,24 +397,24 @@ export default function CompanyPage() {
           const isGapDown = gap < -0.05;
 
           return (
-            <div className="mt-4 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-5">
+            <div className="mt-3.5 sm:mt-4 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-3.5 sm:p-5">
               {/* Header Bar with Gap Analysis */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 mb-4 border-b border-slate-100 gap-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                    <Activity className="w-4 h-4" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-3 sm:mb-4 border-b border-slate-100 gap-2">
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                    <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-black text-slate-900 tracking-tight">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
                         Session OHLC Dynamics & Intraday Range
                       </h3>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         Live Feed
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
+                    <p className="hidden sm:block text-[11px] text-slate-500 mt-0.5">
                       Comparing session opening, closing, extremes, and candle ranges
                     </p>
                   </div>
@@ -403,18 +422,18 @@ export default function CompanyPage() {
 
                 {/* Overnight Gap Badge */}
                 {yClose > 0 && (
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-50">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Overnight Gap:
                     </span>
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border ${
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] sm:text-xs font-mono font-bold border ${
                       isGapUp 
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                         : isGapDown 
                         ? 'bg-rose-50 text-rose-700 border-rose-200' 
                         : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}>
-                      {isGapUp ? <ArrowUpRight className="w-3.5 h-3.5" /> : isGapDown ? <ArrowDownRight className="w-3.5 h-3.5" /> : null}
+                      {isGapUp ? <ArrowUpRight className="w-3 h-3" /> : isGapDown ? <ArrowDownRight className="w-3 h-3" /> : null}
                       {isGapUp ? `+${currencySymbol}${gap.toFixed(2)} (+${gapPct}%) Gap Up` : isGapDown ? `-${currencySymbol}${Math.abs(gap).toFixed(2)} (${gapPct}%) Gap Down` : 'Flat Open (0.00%)'}
                     </span>
                   </div>
@@ -454,28 +473,28 @@ export default function CompanyPage() {
                   </div>
 
                   {/* 4-Box OHLC Matrix */}
-                  <div className="grid grid-cols-4 gap-2 mb-3.5">
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
-                      <span className="font-mono font-bold text-slate-800 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-2.5 sm:mb-3.5">
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
+                      <span className="font-mono font-bold text-slate-800 text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate">
                         {currencySymbol}{tOpen.toFixed(2)}
                       </span>
                     </div>
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
-                      <span className="font-mono font-bold text-emerald-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
+                      <span className="font-mono font-bold text-emerald-700 text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate">
                         {currencySymbol}{tHigh.toFixed(2)}
                       </span>
                     </div>
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
-                      <span className="font-mono font-bold text-rose-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
+                      <span className="font-mono font-bold text-rose-700 text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate">
                         {currencySymbol}{tLow.toFixed(2)}
                       </span>
                     </div>
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider block">LTP / Close</span>
-                      <span className={`font-mono font-black text-xs sm:text-sm block mt-0.5 tabular-nums ${
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-900 uppercase tracking-wider block">LTP</span>
+                      <span className={`font-mono font-black text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate ${
                         tStats.isBullish ? 'text-emerald-600' : 'text-rose-600'
                       }`}>
                         {currencySymbol}{tClose.toFixed(2)}
@@ -546,28 +565,28 @@ export default function CompanyPage() {
                   </div>
 
                   {/* 4-Box OHLC Matrix */}
-                  <div className="grid grid-cols-4 gap-2 mb-3.5">
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
-                      <span className="font-mono font-bold text-slate-800 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                  <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-2.5 sm:mb-3.5">
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Open</span>
+                      <span className="font-mono font-bold text-slate-800 text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate">
                         {currencySymbol}{yOpen.toFixed(2)}
                       </span>
                     </div>
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
-                      <span className="font-mono font-bold text-emerald-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">High</span>
+                      <span className="font-mono font-bold text-emerald-700 text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate">
                         {currencySymbol}{yHigh.toFixed(2)}
                       </span>
                     </div>
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
-                      <span className="font-mono font-bold text-rose-700 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Low</span>
+                      <span className="font-mono font-bold text-rose-700 text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate">
                         {currencySymbol}{yLow.toFixed(2)}
                       </span>
                     </div>
-                    <div className="bg-white/90 p-2 rounded-lg border border-slate-200/70 text-center">
-                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">Close</span>
-                      <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm block mt-0.5 tabular-nums">
+                    <div className="bg-white/90 p-1.5 sm:p-2 rounded-lg border border-slate-200/70 text-center">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-700 uppercase tracking-wider block truncate">Close</span>
+                      <span className="font-mono font-bold text-slate-900 text-[11px] sm:text-sm block mt-0.5 tabular-nums truncate">
                         {currencySymbol}{yClose.toFixed(2)}
                       </span>
                     </div>
@@ -619,34 +638,34 @@ export default function CompanyPage() {
       </div>
 
       {/* 3. ORDER EXECUTION TERMINAL */}
-      <div className="bg-white rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3.5">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
-            <Zap className="w-5 h-5 text-emerald-600" />
+      <div className="bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center space-x-3 sm:space-x-3.5 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
+            <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
                 Trade Terminal • NSE: {data.symbol}
               </h2>
               {!user && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[9px] sm:text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
                   <Lock className="w-2.5 h-2.5" />
                   Sign In Required
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate sm:overflow-visible">
               Instant equity execution (CNC / MIS) with real-time portfolio logging
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto sm:flex sm:items-center sm:space-x-3 shrink-0">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:space-x-3 shrink-0">
           <button
             type="button"
             onClick={() => handleOpenOrder('BUY')}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs tracking-wide shadow-xs transition-all cursor-pointer min-h-[42px]"
+            className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 rounded-lg bg-[#00965e] hover:bg-[#007f50] active:scale-[0.98] text-white font-bold text-xs tracking-wide shadow-xs transition-all cursor-pointer min-h-[38px] sm:min-h-[42px]"
           >
             {!user ? <Lock className="w-3.5 h-3.5 opacity-80" /> : <ArrowUpRight className="w-4 h-4" />}
             <span>BUY</span>
@@ -655,7 +674,7 @@ export default function CompanyPage() {
           <button
             type="button"
             onClick={() => handleOpenOrder('SELL')}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-bold text-xs tracking-wide shadow-xs transition-all cursor-pointer min-h-[42px]"
+            className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 rounded-lg bg-[#df1d44] hover:bg-[#c21437] active:scale-[0.98] text-white font-bold text-xs tracking-wide shadow-xs transition-all cursor-pointer min-h-[38px] sm:min-h-[42px]"
           >
             {!user ? <Lock className="w-3.5 h-3.5 opacity-80" /> : <ArrowDownRight className="w-4 h-4" />}
             <span>SELL</span>
@@ -669,7 +688,7 @@ export default function CompanyPage() {
       </div>
 
       {/* 5. AUDITED FINANCIAL STATEMENTS & OFFICIAL BSE FILINGS (SCREENER COMPREHENSIVE SUITE) */}
-      <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs p-5 sm:p-6 space-y-5">
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs p-3.5 sm:p-6 space-y-4 sm:space-y-5">
         
         {/* Navigation Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -1278,13 +1297,46 @@ export default function CompanyPage() {
 
       {/* Floating Origin UI Toast Feedback */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg border border-slate-800 flex items-center space-x-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{toast.message}</span>
           </div>
         </div>
       )}
+
+      {/* Mobile Sticky Quick-Trade Bottom Bar (Always Accessible on Mobile) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-1.5 font-mono">
+            <span className="text-base font-black text-slate-900 tabular-nums">
+              {currencySymbol}{Number(data.currentPrice).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className={`text-xs font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {isPositive ? '+' : ''}{data.changePercent || '0.00'}%
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono block truncate">{data.symbol} • {data.exchange || 'NSE'}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => handleOpenOrder('BUY')}
+            className="px-4 py-2 rounded-lg bg-[#00965e] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-sm flex items-center gap-1 cursor-pointer"
+          >
+            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>BUY</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleOpenOrder('SELL')}
+            className="px-4 py-2 rounded-lg bg-[#df1d44] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-sm flex items-center gap-1 cursor-pointer"
+          >
+            <ArrowDownRight className="w-3.5 h-3.5" />
+            <span>SELL</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

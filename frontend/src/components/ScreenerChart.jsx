@@ -45,6 +45,49 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
+  const [chartDimensions, setChartDimensions] = useState({ width: 1200, height: 380 });
+
+  // Measure container size dynamically for 100% full-width edge-to-edge responsiveness
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const measureSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        if (rect.width > 0) {
+          setChartDimensions({
+            width: Math.round(rect.width),
+            height: Math.round(rect.height || (showRSI ? 420 : 380))
+          });
+        }
+      }
+    };
+
+    measureSize();
+
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.contentRect && entry.contentRect.width > 0) {
+            setChartDimensions({
+              width: Math.round(entry.contentRect.width),
+              height: Math.round(entry.contentRect.height || (showRSI ? 420 : 380))
+            });
+          }
+        }
+      });
+      resizeObserver.observe(containerRef.current);
+    } else {
+      window.addEventListener('resize', measureSize);
+    }
+
+    return () => {
+      if (resizeObserver) resizeObserver.disconnect();
+      window.removeEventListener('resize', measureSize);
+    };
+  }, [showRSI]);
 
   const timeframes = ['1M', '6M', '1Yr', '3Yr'];
 
@@ -201,15 +244,18 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
     const maxVol = Math.max(...volumes) || 1;
 
-    // SVG Canvas Dimensions
-    const svgW = 1000;
-    const svgH = showRSI ? 420 : 360;
-    const padL = 56;
-    const padR = 70; // 70px on right ensures the price scale & badge never get squeezed
-    const padT = 34; // Extra space on top for high annotations
-    const padB = showRSI ? 110 : 42;
-    const plotW = svgW - padL - padR;
-    const plotH = svgH - padT - padB;
+    // SVG Canvas Dimensions (Fluidly tracks container width for 100% edge-to-edge rendering)
+    const svgW = Math.max(320, chartDimensions.width || 1200);
+    const svgH = Math.max(280, chartDimensions.height || (showRSI ? 420 : 360));
+    
+    // Dynamic responsive margins: narrower on mobile, comfortable on widescreen
+    const isMobile = svgW < 640;
+    const padL = isMobile ? 38 : 52;
+    const padR = isMobile ? 50 : 68; // Space on right for price scale labels
+    const padT = 32; // Extra space on top for high annotations
+    const padB = showRSI ? 100 : 40;
+    const plotW = Math.max(100, svgW - padL - padR);
+    const plotH = Math.max(100, svgH - padT - padB);
 
     const stepX = plotW / Math.max(1, rawPoints.length - 1);
     const getY = (val) => padT + plotH - ((val - plotMin) / finalSpan) * plotH;
@@ -324,7 +370,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
     const maxBarH = plotH * 0.28;
     const volBars = pts.map((pt) => {
       const volH = Math.max(3, Math.min(maxBarH, (pt.vol / maxVol) * maxBarH));
-      const barW = Math.max(2, Math.min(10, stepX * 0.75));
+      const barW = Math.max(2, Math.min(16, stepX * 0.75));
       return {
         x: pt.x - barW / 2,
         y: padT + plotH - volH,
@@ -339,7 +385,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       const topY = Math.min(pt.yOpen, pt.y);
       const bottomY = Math.max(pt.yOpen, pt.y);
       const bodyH = Math.max(2, bottomY - topY);
-      const barW = Math.max(3, Math.min(12, stepX * 0.7));
+      const barW = Math.max(3, Math.min(18, stepX * 0.7));
 
       return {
         wickX: pt.x,
@@ -376,7 +422,8 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
     // 7. X-Axis Date Ticks with Multi-Year Date Awareness
     const xTicks = [];
-    const dateInterval = Math.max(1, Math.floor(pts.length / 8));
+    const maxDateLabels = Math.max(3, Math.min(12, Math.floor(plotW / 120)));
+    const dateInterval = Math.max(1, Math.floor(pts.length / maxDateLabels));
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     for (let i = 0; i < pts.length; i += dateInterval) {
       const d = new Date(pts[i].time * 1000);
@@ -457,7 +504,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       svgH,
       getY
     };
-  }, [candles, currentPrice, metricView, company, showRSI]);
+  }, [candles, currentPrice, metricView, company, showRSI, chartDimensions]);
 
   // Handle Mouse Move over Interactive SVG Canvas
   const handleMouseMove = (e) => {
@@ -510,19 +557,19 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
   const isFromHerePositive = Number(fromHerePct) >= 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-6 space-y-4 font-sans select-none">
+    <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 shadow-sm p-3.5 sm:p-6 space-y-3 sm:space-y-4 font-sans select-none">
       
       {/* 1. TOP HEADER CONTROLS (Authentic Screener.in Layout) */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-3 border-b border-slate-100">
         
         {/* Left: Timeframe pills + Return badge */}
-        <div className="flex items-center space-x-2.5 overflow-x-auto pb-1 max-w-full">
+        <div className="flex items-center space-x-2 sm:space-x-2.5 overflow-x-auto no-scrollbar pb-0.5 max-w-full">
           <div className="flex items-center border border-slate-200 rounded-xl p-0.5 bg-slate-50 text-xs font-semibold shrink-0 shadow-2xs">
             {timeframes.map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium ${
+                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer text-xs font-medium ${
                   timeframe === tf
                     ? 'text-slate-900 font-bold bg-white shadow-2xs border border-slate-200/80'
                     : 'text-slate-500 hover:text-slate-900'
@@ -534,7 +581,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
           </div>
 
           {/* Dynamic Period Return Pill */}
-          <div className={`flex items-center space-x-1 px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 ${
+          <div className={`flex items-center space-x-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border text-xs font-bold shrink-0 ${
             isPositive
               ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
               : 'border-rose-200 bg-rose-50/90 text-rose-700'
@@ -549,13 +596,13 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
         </div>
 
         {/* Right: Price / PE View, Chart Type, More Dropdown & Alerts */}
-        <div className="flex items-center space-x-2 text-xs font-semibold shrink-0 flex-wrap gap-y-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold shrink-0 flex-wrap">
           
           {/* Price vs PE Ratio Tabs */}
           <div className="flex items-center border border-slate-200 rounded-xl p-0.5 bg-slate-50 shadow-2xs">
             <button
               onClick={() => setMetricView('Price')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer text-xs ${
                 metricView === 'Price'
                   ? 'text-slate-900 font-bold bg-white shadow-2xs border border-slate-200/80'
                   : 'text-slate-600 hover:text-slate-900'
@@ -565,7 +612,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             </button>
             <button
               onClick={() => setMetricView('PE Ratio')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer text-xs ${
                 metricView === 'PE Ratio'
                   ? 'text-slate-900 font-bold bg-white shadow-2xs border border-slate-200/80'
                   : 'text-slate-600 hover:text-slate-900'
@@ -580,7 +627,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             <button
               onClick={() => setChartType('area')}
               title="Area Mountain Chart"
-              className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+              className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg transition-all flex items-center gap-1 text-xs ${
                 chartType === 'area'
                   ? 'bg-white text-indigo-700 font-bold shadow-2xs border border-slate-200/80'
                   : 'text-slate-600 hover:text-slate-900'
@@ -592,7 +639,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             <button
               onClick={() => setChartType('candles')}
               title="Japanese Candlestick Chart"
-              className={`px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+              className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg transition-all flex items-center gap-1 text-xs ${
                 chartType === 'candles'
                   ? 'bg-white text-emerald-700 font-bold shadow-2xs border border-slate-200/80'
                   : 'text-slate-600 hover:text-slate-900'
@@ -686,32 +733,32 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
       {/* 2. PREMIUM LIVE OHLC & INSPECTION DATA RIBBON */}
       {activePt && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono bg-slate-50/90 rounded-xl px-4 py-2.5 border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center space-x-3.5 flex-wrap gap-y-1">
-            <span className="font-bold text-slate-900 font-sans px-2.5 py-0.5 rounded-md bg-white border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-xs font-mono bg-slate-50/90 rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center space-x-2 sm:space-x-3.5 flex-wrap gap-y-1">
+            <span className="font-bold text-slate-900 font-sans px-2 py-0.5 rounded-md bg-white border border-slate-200/90 shadow-2xs text-[10px] sm:text-xs">
               {activeDateStr}
             </span>
-            <div className="flex items-center space-x-3 text-slate-600">
+            <div className="flex items-center space-x-2 sm:space-x-3 text-slate-600">
               <span>O: <strong className="text-slate-900">{currencySymbol}{activePt.open?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
               <span>H: <strong className="text-emerald-700">{currencySymbol}{activePt.high?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
               <span>L: <strong className="text-rose-700">{currencySymbol}{activePt.low?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
-              <span>C: <strong className="text-slate-900 text-sm font-black">{currencySymbol}{activePt.close.toFixed(2)}</strong></span>
+              <span>C: <strong className="text-slate-900 text-xs sm:text-sm font-black">{currencySymbol}{activePt.close.toFixed(2)}</strong></span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 flex-wrap gap-y-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">FROM HERE:</span>
+          <div className="flex items-center space-x-2.5 sm:space-x-4 flex-wrap gap-y-1 text-[10px] sm:text-xs">
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">FROM HERE:</span>
               <span className={`font-bold px-1.5 py-0.5 rounded-md ${isFromHerePositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
                 {isFromHerePositive ? '↗ +' : '↘ '}{fromHerePct}%
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">VOL:</span>
+              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">VOL:</span>
               <strong className="text-slate-800">{formatVolume(activePt.vol)}</strong>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-slate-400 uppercase font-sans font-semibold">DEL:</span>
+              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">DEL:</span>
               <strong className="text-slate-800">{Math.round(40 + (activePt.vol % 30))}%</strong>
             </div>
             {metricView === 'PE Ratio' && (
@@ -720,10 +767,10 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
               </span>
             )}
             {showDMA50 && activePt.dma50 && (
-              <span className="text-amber-600 font-semibold text-[11px]">50 DMA: {currencySymbol}{activePt.dma50}</span>
+              <span className="text-amber-600 font-semibold text-[10px] sm:text-[11px]">50 DMA: {currencySymbol}{activePt.dma50}</span>
             )}
             {showDMA200 && activePt.dma200 && (
-              <span className="text-rose-600 font-semibold text-[11px]">200 DMA: {currencySymbol}{activePt.dma200}</span>
+              <span className="text-rose-600 font-semibold text-[10px] sm:text-[11px]">200 DMA: {currencySymbol}{activePt.dma200}</span>
             )}
           </div>
         </div>
@@ -731,7 +778,8 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
       {/* 3. INTERACTIVE SVG CANVAS WITH CROSSHAIR & FLOATING HUD */}
       <div 
-        className="relative w-full h-[360px] sm:h-[400px] select-none"
+        ref={containerRef}
+        className="relative w-full h-[300px] sm:h-[400px] select-none"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
@@ -746,7 +794,8 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
         <svg
           ref={svgRef}
           viewBox={`0 0 ${chartData.svgW} ${chartData.svgH}`}
-          className="w-full h-full overflow-visible"
+          preserveAspectRatio="none"
+          className="w-full h-full block overflow-visible"
         >
           <defs>
             {/* Elegant Area Gradient */}
@@ -1045,23 +1094,27 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 {metricView === 'PE Ratio' ? `${activePt.pe}x` : `${currencySymbol}${activePt.close.toFixed(1)}`}
               </text>
 
-              {/* Bottom Date Badge on Crosshair */}
-              <rect
-                x={activePt.x - 38}
-                y={chartData.padT + chartData.plotH + 4}
-                width="76"
-                height="18"
-                rx="4"
-                fill="#0f172a"
-              />
-              <text
-                x={activePt.x}
-                y={chartData.padT + chartData.plotH + 16}
-                textAnchor="middle"
-                className="text-[9px] font-mono font-bold fill-white"
-              >
-                {activeDateStr}
-              </text>
+              {/* Bottom Date Badge on Crosshair (Shown when actively hovering/inspecting) */}
+              {isHovering && (
+                <g>
+                  <rect
+                    x={Math.min(chartData.svgW - chartData.padR - 76, Math.max(chartData.padL, activePt.x - 38))}
+                    y={chartData.padT + chartData.plotH + 4}
+                    width="76"
+                    height="18"
+                    rx="4"
+                    fill="#0f172a"
+                  />
+                  <text
+                    x={Math.min(chartData.svgW - chartData.padR - 38, Math.max(chartData.padL + 38, activePt.x))}
+                    y={chartData.padT + chartData.plotH + 16}
+                    textAnchor="middle"
+                    className="text-[9px] font-mono font-bold fill-white"
+                  >
+                    {activeDateStr}
+                  </text>
+                </g>
+              )}
             </g>
           )}
 

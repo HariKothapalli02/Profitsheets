@@ -23,7 +23,8 @@ import {
   ExternalLink,
   PieChart,
   LayoutGrid,
-  List
+  List,
+  Sparkles
 } from 'lucide-react';
 import axios from 'axios';
 import { getRecentSearches, addRecentSearch, clearRecentSearches } from '../utils/recentSearches';
@@ -268,6 +269,18 @@ export default function HomePage() {
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Global '/' keyboard shortcut to focus search
+  useEffect(() => {
+    function handleGlobalSlash(e) {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+    window.addEventListener('keydown', handleGlobalSlash);
+    return () => window.removeEventListener('keydown', handleGlobalSlash);
   }, []);
 
   // Debounced live search
@@ -614,44 +627,43 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 2. HERO SEARCH */}
-      <section className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-8 text-center space-y-3 shadow-xs">
-        <div className="max-w-xl mx-auto space-y-3 sm:space-y-4">
-          
-          {/* Brand Mark & Tagline (Desktop Logo + Tagline, Mobile Sleek Header) */}
-          <div className="space-y-1">
-            <div className="hidden sm:flex flex-col items-center justify-center space-y-1.5">
-              <img 
-                src="/logo.png" 
-                alt="ProfitSheets" 
-                className="h-11 w-auto object-contain"
-              />
-              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed font-normal">
-                Search over 4,000+ Indian public companies for 3-year audited financials, concalls, and 1-click Kite demat orders.
-              </p>
-            </div>
+      {/* 2. INSTITUTIONAL HERO SECTION */}
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white via-slate-50/40 to-white p-4 sm:p-9 text-center space-y-4 sm:space-y-6 shadow-xs">
+        {/* Ambient Gradient Glow Backdrop */}
+        <div className="absolute -top-24 -left-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow"></div>
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" style={{ animationDelay: '1.5s' }}></div>
 
-            <div className="sm:hidden text-left pb-0.5">
-              <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center justify-between">
-                <span>Search Indian Equities</span>
-                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  NSE & BSE
-                </span>
-              </h1>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Audited financials, live ticks, concall transcripts & reports
-              </p>
-            </div>
+        <div className="relative max-w-5xl mx-auto space-y-3.5 sm:space-y-5">
+          
+          {/* Institutional Telemetry Pill */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50/90 border border-emerald-200/80 shadow-2xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[10px] sm:text-xs font-bold text-emerald-800 tracking-wider font-mono">
+              INSTITUTIONAL EQUITIES SCREENER • REAL-TIME NSE & BSE
+            </span>
           </div>
 
-          {/* Omnibar Search Container */}
-          <div className="relative text-left" ref={searchRef}>
-            <div className="relative flex items-center bg-white rounded-xl border border-slate-300 shadow-2xs hover:border-slate-400 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-colors p-1 sm:p-1.5">
-              <div className="pl-2.5 sm:pl-3 pr-1.5 text-slate-400">
+          {/* High-Authority Headline & Subtitle */}
+          <div className="space-y-1.5 sm:space-y-2">
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-[1.2]">
+              Search, Screen & Analyze Indian Equities with <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">Audited Precision</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-2xl mx-auto leading-relaxed">
+              Real-time ticks, 3-year audited financial statements, verified BSE corporate disclosures, and 1-click Zerodha Kite order execution across 4,000+ listed equities.
+            </p>
+          </div>
+
+          {/* Omnibar Command Search Palette */}
+          <div className="relative text-left max-w-3xl mx-auto pt-1" ref={searchRef}>
+            <div className="relative flex items-center bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-300 shadow-sm hover:border-slate-400 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/15 focus-within:shadow-md transition-all duration-200 p-1 sm:p-1.5">
+              <div className="pl-3 sm:pl-3.5 pr-2 text-slate-400 flex items-center">
                 {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-emerald-600" />
                 ) : (
-                  <Search className="w-4 h-4 text-slate-400" />
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                 )}
               </div>
 
@@ -662,8 +674,8 @@ export default function HomePage() {
                 onChange={(e) => { setQuery(e.target.value); setSelectedIndex(-1); }}
                 onFocus={() => setIsInputFocused(true)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search 4,000+ stocks (e.g. Reliance, TCS)..."
-                className="w-full py-1.5 sm:py-2 pr-2 text-xs sm:text-sm placeholder-slate-400 bg-transparent focus:outline-none"
+                placeholder="Search 4,000+ stocks (e.g. Reliance, Tata Motors, TCS, HDFC Bank)..."
+                className="w-full py-2 sm:py-2.5 pr-2 text-xs sm:text-sm font-medium placeholder-slate-400 text-slate-900 bg-transparent focus:outline-none"
               />
 
               {query.trim().length > 0 ? (
@@ -675,16 +687,16 @@ export default function HomePage() {
                   <X className="w-4 h-4" />
                 </button>
               ) : (
-                <kbd className="hidden sm:inline-block mr-2 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 border border-slate-200 bg-slate-50 select-none">
-                  /
+                <kbd className="hidden sm:inline-flex items-center gap-0.5 mr-2 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-slate-400 border border-slate-200 bg-slate-50 select-none">
+                  <span>/</span>
                 </kbd>
               )}
             </div>
 
             {/* Live Autocomplete Dropdown */}
             {results.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-50 divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                <div className="px-3.5 py-1.5 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden z-50 divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                <div className="px-3.5 py-2 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                   <span>Matching stocks ({results.length})</span>
                   <span>Press Enter to select</span>
                 </div>
@@ -698,7 +710,7 @@ export default function HomePage() {
                     }`}
                   >
                     <div className="flex items-center space-x-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 text-xs shrink-0 font-mono font-medium">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 text-xs shrink-0 font-mono font-bold">
                         {item.symbol.substring(0, 2)}
                       </div>
                       <div className="min-w-0">
@@ -723,7 +735,7 @@ export default function HomePage() {
 
             {/* Recent Searches Dropdown */}
             {isInputFocused && !query.trim() && recentSearches.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden z-50 divide-y divide-slate-100 text-left">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-50 divide-y divide-slate-100 text-left">
                 <div className="px-3.5 py-2 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
                   <span className="flex items-center gap-1.5 text-[11px] font-medium">
                     <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -754,9 +766,12 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Clean Trending Suggestions */}
-          <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5 whitespace-nowrap text-xs text-slate-500 sm:flex-wrap sm:justify-center sm:gap-1.5 sm:space-x-0">
-            <span className="text-slate-400 shrink-0 text-[11px] font-medium">Trending:</span>
+          {/* Clean Trending Equities Row - BALANCED FLEX NO-ORPHAN */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pt-1 text-xs text-slate-500 max-w-4xl mx-auto">
+            <span className="text-slate-400 shrink-0 text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1 mr-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Trending:</span>
+            </span>
             {[
               { label: 'Reliance', sym: 'RELIANCE' },
               { label: 'TCS', sym: 'TCS' },
@@ -770,25 +785,25 @@ export default function HomePage() {
               <button
                 key={c.sym}
                 onClick={() => handleSelectCompany(c.sym)}
-                className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/90 text-slate-700 text-[11px] font-mono font-medium transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50/90 hover:bg-emerald-50 border border-slate-200/90 hover:border-emerald-300 text-slate-700 hover:text-emerald-800 text-[11px] font-mono font-medium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0 shadow-2xs"
               >
-                {c.label}
+                <span>{c.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Minimalist Recent Searches Line */}
+          {/* Recent Searches Line */}
           {recentSearches.length > 0 && (
-            <div className="flex items-center justify-between sm:justify-center gap-2 text-xs text-slate-400 font-mono pt-1 border-t border-slate-100 overflow-x-auto no-scrollbar whitespace-nowrap">
+            <div className="flex items-center justify-between sm:justify-center gap-2 text-xs text-slate-400 font-mono pt-1.5 border-t border-slate-100 overflow-x-auto no-scrollbar whitespace-nowrap">
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <span className="flex items-center gap-1 text-[11px] font-sans text-slate-400 shrink-0">
+                <span className="flex items-center gap-1 text-[11px] font-sans text-slate-400 shrink-0 font-medium">
                   <Clock className="w-3 h-3 text-slate-400" /> Recent:
                 </span>
                 {recentSearches.slice(0, 5).map((sym) => (
                   <button
                     key={sym}
                     onClick={() => handleSelectCompany(sym)}
-                    className="font-mono text-[11px] font-medium text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer shrink-0 bg-slate-100 px-1.5 py-0.5 rounded"
+                    className="font-mono text-[11px] font-semibold text-slate-700 hover:text-emerald-700 hover:bg-slate-200/70 transition-colors cursor-pointer shrink-0 bg-slate-100 px-2 py-0.5 rounded-md"
                   >
                     {sym}
                   </button>
@@ -796,12 +811,45 @@ export default function HomePage() {
               </div>
               <button
                 onClick={handleClearRecent}
-                className="text-[11px] text-slate-400 hover:text-rose-600 underline font-sans cursor-pointer shrink-0"
+                className="text-[11px] text-slate-400 hover:text-rose-600 transition-colors font-sans cursor-pointer shrink-0"
               >
                 Clear
               </button>
             </div>
           )}
+
+          {/* Institutional Feature Highlights (3 Live Micro-Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-3 max-w-3xl mx-auto text-left">
+            <div className="group flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-white hover:border-emerald-200 hover:shadow-xs transition-all duration-200">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Zap className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-slate-800 tracking-tight">Real-Time Tick Feeds</div>
+                <div className="text-[10px] text-slate-500 truncate">Sub-second NSE & BSE ticks</div>
+              </div>
+            </div>
+
+            <div className="group flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-white hover:border-teal-200 hover:shadow-xs transition-all duration-200">
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <FileText className="w-4 h-4 text-teal-600" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-slate-800 tracking-tight">Audited Financials</div>
+                <div className="text-[10px] text-slate-500 truncate">3-Yr statements & BSE filings</div>
+              </div>
+            </div>
+
+            <div className="group flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-white hover:border-indigo-200 hover:shadow-xs transition-all duration-200">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-slate-800 tracking-tight">1-Click Kite Demat</div>
+                <div className="text-[10px] text-slate-500 truncate">Direct Zerodha order dispatch</div>
+              </div>
+            </div>
+          </div>
 
         </div>
       </section>

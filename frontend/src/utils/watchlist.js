@@ -29,7 +29,9 @@ export async function fetchWatchlist(token) {
         list = combined;
       }
     } catch (e) {
-      console.warn('Could not sync remote watchlist:', e.message);
+      if (e.response?.status !== 401) {
+        console.warn('Could not sync remote watchlist:', e.message);
+      }
     }
   }
   return list;

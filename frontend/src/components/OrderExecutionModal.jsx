@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   ExternalLink, 
@@ -33,6 +34,28 @@ export default function OrderExecutionModal({
 
   // 'BUY' | 'SELL'
   const [action, setAction] = useState(initialAction);
+
+  // Sync action with initialAction whenever modal opens
+  useEffect(() => {
+    if (initialAction) {
+      setAction(initialAction);
+    }
+  }, [initialAction, isOpen]);
+
+  // Lock body & document scroll when modal is active so dark overlay covers full viewport edge-to-edge
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isOpen]);
   // 'CNC' | 'MIS'
   const [product, setProduct] = useState('CNC');
   // 'NSE' | 'BSE'
@@ -283,17 +306,20 @@ export default function OrderExecutionModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen min-h-screen z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto"
+      onClick={onClose}
+    >
       <div 
-        className="w-full max-w-[440px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col transform transition-all"
+        className="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col transform transition-all my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Bar */}
-        <div className={`${trackedOrder ? 'bg-amber-600' : themeBgColor} text-white px-5 py-3.5 flex items-center justify-between transition-colors duration-200`}>
+        <div className={`${trackedOrder ? 'bg-amber-600' : themeBgColor} text-white px-5 py-3.5 flex items-center justify-between rounded-t-2xl transition-colors duration-200 select-none`}>
           <div className="flex items-center space-x-2.5 overflow-hidden">
-            <span className="px-2 py-0.5 rounded text-[11px] font-black tracking-wider bg-white/20 uppercase font-mono">
-              {trackedOrder ? trackedOrder.status : action}
+            <span className="px-2 py-0.5 rounded text-[11px] font-black tracking-wider bg-black/25 uppercase font-mono">
+              {action} ORDER
             </span>
             <span className="font-bold text-sm truncate font-mono tracking-wide">
               {stock.symbol}
@@ -304,8 +330,9 @@ export default function OrderExecutionModal({
           </div>
 
           <button 
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -481,103 +508,22 @@ export default function OrderExecutionModal({
             </div>
           ) : (
             /* ============================================================== */
-            /* VIEW B: ORDER CONFIGURATION & SUBMISSION STAGE */
+            /* VIEW B: CLEAN FOCUSED ORDER CONFIGURATION */
             /* ============================================================== */
             <>
-              {/* Action Switcher: BUY (Long) vs SELL (Short/Exit) */}
-              <div className="grid grid-cols-2 p-1 bg-slate-100/90 rounded-xl gap-1">
-                <button
-                  type="button"
-                  onClick={() => setAction('BUY')}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all ${
-                    isBuy 
-                      ? 'bg-[#00965e] text-white shadow-sm' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  BUY (Long)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAction('SELL')}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all ${
-                    !isBuy 
-                      ? 'bg-[#df1d44] text-white shadow-sm' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  SELL (Short/Exit)
-                </button>
-              </div>
-
-              {/* Row 1: PRODUCT & EXCHANGE */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    PRODUCT
-                  </label>
-                  <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => setProduct('CNC')}
-                      className={`py-1.5 rounded-md transition-all ${
-                        product === 'CNC' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      CNC <span className="text-[10px] font-normal text-slate-400 block sm:inline">(Delivery)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setProduct('MIS')}
-                      className={`py-1.5 rounded-md transition-all ${
-                        product === 'MIS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      MIS <span className="text-[10px] font-normal text-slate-400 block sm:inline">(Intraday)</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    EXCHANGE
-                  </label>
-                  <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => setExchange('NSE')}
-                      className={`py-1.5 rounded-md transition-all ${
-                        exchange === 'NSE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      NSE
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setExchange('BSE')}
-                      className={`py-1.5 rounded-md transition-all ${
-                        exchange === 'BSE' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      BSE
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2: ORDER TYPE (MARKET, LIMIT, SL, SL-M) */}
+              {/* Order Type: MARKET vs LIMIT */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   ORDER TYPE
                 </label>
-                <div className="grid grid-cols-4 p-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-700">
-                  {['MARKET', 'LIMIT', 'SL', 'SL-M'].map(ot => (
+                <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-700">
+                  {['MARKET', 'LIMIT'].map(ot => (
                     <button
                       key={ot}
                       type="button"
                       onClick={() => setOrderType(ot)}
-                      className={`py-1.5 rounded-md transition-all ${
-                        orderType === ot ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                      className={`py-1.5 rounded-md transition-all cursor-pointer ${
+                        orderType === ot ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       {ot}
@@ -586,11 +532,11 @@ export default function OrderExecutionModal({
                 </div>
               </div>
 
-              {/* Row 3: QUANTITY (SHARES) & PRICE */}
+              {/* Quantity (Shares) & Price */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    QUANTITY (SHARES)
+                    QUANTITY
                   </label>
                   <div className="flex items-center border border-slate-200 rounded-lg bg-slate-50/60 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500">
                     <button
@@ -616,14 +562,14 @@ export default function OrderExecutionModal({
                     </button>
                   </div>
 
-                  {/* Quick Pills */}
-                  <div className="flex items-center space-x-1.5 mt-2">
+                  {/* Quick Quantity Pills */}
+                  <div className="flex items-center space-x-1 mt-1.5">
                     {[10, 25, 50, 100].map(amt => (
                       <button
                         key={amt}
                         type="button"
                         onClick={() => setQuantity(amt)}
-                        className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                        className="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                       >
                         +{amt}
                       </button>
@@ -633,7 +579,7 @@ export default function OrderExecutionModal({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    PRICE ({currencySymbol}) {orderType === 'MARKET' ? '(AT MARKET)' : ''}
+                    PRICE ({currencySymbol}) {orderType === 'MARKET' ? '(MARKET)' : ''}
                   </label>
                   <input
                     type="number"
@@ -645,51 +591,54 @@ export default function OrderExecutionModal({
                       orderType === 'MARKET' ? 'bg-slate-100/70 text-slate-500 cursor-not-allowed' : 'bg-white'
                     }`}
                   />
+                  <div className="text-[10px] text-slate-400 font-mono mt-1.5">
+                    LTP: {currencySymbol}{currentPrice.toFixed(2)}
+                  </div>
                 </div>
               </div>
 
-              {/* Execution Channel Switcher: Demo Trading vs Zerodha Kite */}
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {/* Execution Channel: Demo Trading vs Zerodha Kite */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   EXECUTION MODE
                 </label>
                 <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl gap-1 text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => setExecutionMode('DEMO')}
-                    className={`py-2 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                    className={`py-2 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       executionMode === 'DEMO'
-                        ? 'bg-white text-emerald-700 shadow-xs border border-emerald-200'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-[#00965e] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 bg-transparent'
                     }`}
                   >
-                    <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                    <Zap className="w-3.5 h-3.5" />
                     <span>Demo (Virtual Cash)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setExecutionMode('ZERODHA')}
-                    className={`py-2 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                    className={`py-2 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       executionMode === 'ZERODHA'
-                        ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 bg-transparent'
                     }`}
                   >
-                    <ExternalLink className="w-3.5 h-3.5 text-slate-600" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                     <span>Zerodha Kite</span>
                   </button>
                 </div>
               </div>
 
-              {/* Estimated Order Value Card */}
-              <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-1.5">
+              {/* Order Value & Available Balance Card */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Estimated Order Value</span>
                   <span className="text-sm font-black font-mono text-slate-900">
                     {currencySymbol}{Number(estimatedOrderValue).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
-                {executionMode === 'DEMO' ? (
+                {executionMode === 'DEMO' && (
                   <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60">
                     <span className="text-slate-500 flex items-center gap-1">
                       <Wallet className="w-3 h-3 text-emerald-600" />
@@ -699,22 +648,7 @@ export default function OrderExecutionModal({
                       ₹{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60">
-                    <span className="text-slate-400">Brokerage & Tracking</span>
-                    <span className="font-bold text-[#00965e] font-mono">Real-time Kite Postback</span>
-                  </div>
                 )}
-              </div>
-
-              {/* Info footnote */}
-              <div className="flex items-start gap-2 text-[11px] text-slate-500 leading-relaxed bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
-                <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                <span>
-                  {executionMode === 'DEMO'
-                    ? 'Demo mode executes paper trades instantly using your ₹5,00,000 virtual cash balance. Zero risk, tracked in your History and Profile.'
-                    : 'Zerodha Kite orders are dispatched with a unique tracking tag and saved as PENDING until confirmed complete. Your portfolio updates upon execution!'}
-                </span>
               </div>
 
               {/* Feedback message if any */}
@@ -778,4 +712,8 @@ export default function OrderExecutionModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

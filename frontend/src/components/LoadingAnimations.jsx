@@ -53,7 +53,7 @@ export function CompanyPageSkeleton({ symbol = 'EQUITY' }) {
   const sym = (symbol || 'EQUITY').trim().toUpperCase();
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-16 font-sans">
+    <div className="space-y-4 w-full max-w-[1720px] mx-auto pb-16 font-sans">
       
       {/* 1. Sleek Live Telemetry Banner */}
       <div className="bg-gradient-to-r from-emerald-900 via-slate-900 to-slate-900 text-white rounded-xl p-4 sm:p-5 shadow-lg border border-emerald-500/30 overflow-hidden relative">
