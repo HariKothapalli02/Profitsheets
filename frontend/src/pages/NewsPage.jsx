@@ -58,11 +58,14 @@ export default function NewsPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="bg-white rounded-[2rem] border border-slate-100 p-5 h-72 animate-pulse space-y-3">
-              <div className="h-36 bg-slate-100 rounded-2xl"></div>
-              <div className="h-4 bg-slate-200 rounded-full w-1/3"></div>
-              <div className="h-5 bg-slate-200 rounded-full w-3/4"></div>
-              <div className="h-3 bg-slate-100 rounded-full w-full"></div>
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 relative overflow-hidden shadow-xs">
+              <div className="h-40 bg-slate-100 rounded-xl animate-shimmer"></div>
+              <div className="flex justify-between items-center">
+                <div className="h-3 w-20 bg-slate-200 rounded animate-shimmer"></div>
+                <div className="h-3 w-16 bg-slate-100 rounded animate-pulse"></div>
+              </div>
+              <div className="h-5 bg-slate-200 rounded-md w-5/6 animate-shimmer"></div>
+              <div className="h-3.5 bg-slate-100 rounded w-full animate-pulse"></div>
             </div>
           ))}
         </div>

@@ -21,7 +21,9 @@ import {
   Wallet,
   Activity,
   ExternalLink,
-  PieChart
+  PieChart,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import axios from 'axios';
 import { getRecentSearches, addRecentSearch, clearRecentSearches } from '../utils/recentSearches';
@@ -52,10 +54,12 @@ export default function HomePage() {
   const [popularStocks, setPopularStocks] = useState([]);
   const [popularLoading, setPopularLoading] = useState(true);
   const [popularTab, setPopularTab] = useState('ALL'); // 'ALL' | 'GAINERS' | 'LOSERS' | 'VOLUME' | 'BLUECHIPS'
+  const [stockViewMode, setStockViewMode] = useState('GRID'); // 'GRID' | 'LIST'
 
   // Live BSE Announcements Feed
   const [announcements, setAnnouncements] = useState([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementFilter, setAnnouncementFilter] = useState('ALL'); // 'ALL' | 'RESULTS' | 'BOARD' | 'CONCALL'
 
   // Kite callback notice
   const [kiteStatusNotice, setKiteStatusNotice] = useState(null);
@@ -146,13 +150,13 @@ export default function HomePage() {
     }
   };
 
-  // Fetch Live BSE Corporate Announcements
+  // Fetch Live BSE Corporate Announcements (Market-wide across top Indian equities)
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const res = await axios.get('/api/stocks/bse-announcements?symbol=LALITHAA');
+        const res = await axios.get('/api/stocks/bse-announcements?symbol=ALL');
         if (res.data?.announcements && Array.isArray(res.data.announcements)) {
-          setAnnouncements(res.data.announcements.slice(0, 6));
+          setAnnouncements(res.data.announcements);
         }
       } catch (err) {
         console.warn('Failed to load BSE announcements:', err.message);
@@ -162,6 +166,37 @@ export default function HomePage() {
     };
     fetchAnnouncements();
   }, []);
+
+  const filteredAnnouncements = useMemo(() => {
+    if (!announcements || announcements.length === 0) return [];
+    if (announcementFilter === 'ALL') return announcements;
+    if (announcementFilter === 'RESULTS') {
+      return announcements.filter(a => a.type === 'Financial Results' || a.category?.toLowerCase().includes('result') || a.headline?.toLowerCase().includes('result'));
+    }
+    if (announcementFilter === 'BOARD') {
+      return announcements.filter(a => a.type === 'Board Meeting' || a.category?.toLowerCase().includes('board') || a.headline?.toLowerCase().includes('board'));
+    }
+    if (announcementFilter === 'CONCALL') {
+      return announcements.filter(a => a.type === 'Concall Transcript' || a.type === 'Investor Presentation' || a.headline?.toLowerCase().includes('presentation') || a.headline?.toLowerCase().includes('transcript') || a.headline?.toLowerCase().includes('concall'));
+    }
+    return announcements;
+  }, [announcements, announcementFilter]);
+
+  const getAnnouncementBadgeStyle = (type) => {
+    switch (type) {
+      case 'Financial Results':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
+      case 'Board Meeting':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200/80';
+      case 'Concall Transcript':
+      case 'Investor Presentation':
+        return 'bg-sky-50 text-sky-700 border-sky-200/80';
+      case 'Corporate Action':
+        return 'bg-amber-50 text-amber-700 border-amber-200/80';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
 
   // Load recent searches on mount
   useEffect(() => {
@@ -346,7 +381,16 @@ export default function HomePage() {
 
   // Filtered & Sorted popular stocks based on active tab
   const filteredPopular = useMemo(() => {
-    let list = [...popularStocks];
+    // Deduplicate by symbol and alias
+    const seen = new Set();
+    const uniqueList = popularStocks.filter(s => {
+      if (!s || !s.symbol || seen.has(s.symbol)) return false;
+      if (s.symbol === 'TMCV' && seen.has('TATAMOTORS')) return false;
+      seen.add(s.symbol);
+      return true;
+    });
+
+    let list = [...uniqueList];
     if (popularTab === 'GAINERS') {
       return list.sort((a, b) => (b.changePercent || 0) - (a.changePercent || 0)).slice(0, 8);
     }
@@ -382,62 +426,64 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-10 pb-16 sm:pb-20 font-sans text-slate-900 px-1 sm:px-0">
+    <div className="space-y-4 sm:space-y-8 pb-16 sm:pb-20 font-sans text-slate-900">
       
       {/* 1. TOP MARKET PULSE & BENCHMARK INDICES BAR */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-5 shadow-xs">
+      <section className="bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-5 shadow-xs space-y-3">
         
-        {/* Header Bar */}
-        <div className="flex items-center justify-between pb-2.5 sm:pb-3.5 mb-2.5 sm:mb-3.5 border-b border-slate-100 gap-2">
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-slate-700 text-[11px] sm:text-xs font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-              <span className="font-medium">Live stream</span>
+        {/* Responsive Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 sm:pb-3 border-b border-slate-100">
+          <div className="flex items-center justify-between sm:justify-start space-x-2">
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-bold tracking-wider">MARKET PULSE</span>
             </div>
-            <div className="hidden md:flex items-center space-x-1.5 text-xs text-slate-500">
-              <span className="text-slate-300">•</span>
-              <span>Breadth:</span>
-              <span className="font-mono text-emerald-700 font-medium">{marketPulse?.breadth?.advances || '1,482 Adv'}</span>
+
+            <div className="flex items-center space-x-1.5 text-[11px] text-slate-500 font-mono bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200/80">
+              <span className="text-emerald-700 font-semibold">{marketPulse?.breadth?.advances || '1,482 Adv'}</span>
               <span className="text-slate-300">/</span>
-              <span className="font-mono text-rose-700 font-medium">{marketPulse?.breadth?.declines || '984 Dec'}</span>
+              <span className="text-rose-600 font-semibold">{marketPulse?.breadth?.declines || '984 Dec'}</span>
             </div>
           </div>
 
-          {/* Category Switcher with Horizontal Scroll */}
-          <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg text-xs overflow-x-auto no-scrollbar whitespace-nowrap shrink-0">
+          {/* Full-width Segmented Tab Control on Mobile */}
+          <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-xs sm:flex sm:space-x-1 sm:w-auto">
             <button
               onClick={() => setIndexTab('BENCHMARK')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors text-[11px] sm:text-xs font-medium cursor-pointer shrink-0 ${
-                indexTab === 'BENCHMARK' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
+              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${
+                indexTab === 'BENCHMARK' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Benchmark
             </button>
             <button
               onClick={() => setIndexTab('SECTORS')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors text-[11px] sm:text-xs font-medium cursor-pointer shrink-0 ${
-                indexTab === 'SECTORS' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
+              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${
+                indexTab === 'SECTORS' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Sector heat
+              Sector Heat
             </button>
             <button
               onClick={() => setIndexTab('GLOBAL')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors text-[11px] sm:text-xs font-medium cursor-pointer shrink-0 ${
-                indexTab === 'GLOBAL' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'
+              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${
+                indexTab === 'GLOBAL' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Global & macro
+              Global Macro
             </button>
           </div>
         </div>
 
-        {/* Dynamic Indices Row (Horizontal Snap-Scroll on Mobile, Grid on Desktop) */}
+        {/* Dynamic Indices: Symmetrical 2x2 Grid on Mobile, 4-Col Grid on Desktop */}
         {indexTab === 'BENCHMARK' && (
-          <div className="flex sm:grid sm:grid-cols-4 gap-2 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x pb-0.5 sm:pb-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {indicesLoading && indices.length === 0 ? (
               [1, 2, 3, 4].map(n => (
-                <div key={n} className="h-16 min-w-[140px] sm:min-w-0 rounded-xl bg-slate-50 border border-slate-100 p-2.5 shrink-0"></div>
+                <div key={n} className="h-20 rounded-xl bg-slate-50 border border-slate-100 p-3 animate-pulse"></div>
               ))
             ) : (
               indices.map((idx, i) => {
@@ -445,28 +491,29 @@ export default function HomePage() {
                 return (
                   <div 
                     key={i}
-                    className="min-w-[145px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/60 hover:bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200 transition-colors flex flex-col justify-between"
+                    className="bg-slate-50/70 hover:bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/90 transition-all flex flex-col justify-between space-y-1.5 group"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1 min-w-0">
-                        <span className="font-semibold text-slate-800 text-xs sm:text-sm truncate">
+                        <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
                           {idx.symbol}
                         </span>
                         <span className="text-[9px] font-mono uppercase px-1 py-0.2 rounded bg-slate-200/60 text-slate-600">
                           {idx.exchange}
                         </span>
                       </div>
-                      {renderSparkline(isPositive)}
+                      <div className="shrink-0 scale-90 sm:scale-100 origin-right">
+                        {renderSparkline(isPositive)}
+                      </div>
                     </div>
 
-                    <div className="flex items-baseline justify-between mt-2 pt-1.5 border-t border-slate-100">
-                      <span className="text-xs sm:text-base font-semibold font-mono text-slate-900 tabular-nums">
+                    <div className="flex items-baseline justify-between pt-1 border-t border-slate-100">
+                      <span className="text-xs sm:text-sm font-bold font-mono text-slate-900 tabular-nums">
                         {Number(idx.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      <span className={`text-[10px] sm:text-xs font-mono font-medium inline-flex items-center px-1.5 py-0.5 rounded ${
-                        isPositive ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+                      <span className={`text-[10px] sm:text-xs font-mono font-bold inline-flex items-center px-1.5 py-0.5 rounded ${
+                        isPositive ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/60' : 'text-rose-700 bg-rose-50 border border-rose-200/60'
                       }`}>
-                        {isPositive ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
                         {isPositive ? '+' : ''}{Number(idx.changePercent || 0).toFixed(2)}%
                       </span>
                     </div>
@@ -478,57 +525,71 @@ export default function HomePage() {
         )}
 
         {indexTab === 'SECTORS' && (
-          <div className="flex sm:grid sm:grid-cols-4 gap-2 overflow-x-auto no-scrollbar snap-x pb-0.5 sm:pb-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
             {(marketPulse?.sectors || sectorData).slice(0, 4).map((sec, i) => (
-              <div key={i} className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-slate-800 block truncate">{sec.name}</span>
-                  <span className="text-[10px] text-slate-400 font-mono">Top: {sec.topStock} ({sec.topReturn})</span>
+              <div 
+                key={i} 
+                onClick={() => handleSelectCompany(sec.topStock)}
+                className="bg-slate-50/70 hover:bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-1.5 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 truncate">{sec.name}</span>
+                  <span className={`font-mono text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded ${
+                    sec.isUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                  }`}>
+                    {sec.isUp ? '+' : ''}{Number(sec.change).toFixed(2)}%
+                  </span>
                 </div>
-                <span className={`font-mono text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${
-                  sec.isUp ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                }`}>
-                  {sec.isUp ? '+' : ''}{Number(sec.change).toFixed(2)}%
-                </span>
+                <div className="text-[10px] text-slate-500 font-mono truncate pt-1 border-t border-slate-100 flex items-center justify-between">
+                  <span>Top: <strong className="text-slate-800">{sec.topStock}</strong></span>
+                  <span className="text-emerald-700 font-semibold">{sec.topReturn}</span>
+                </div>
               </div>
             ))}
           </div>
         )}
 
         {indexTab === 'GLOBAL' && (
-          <div className="flex sm:grid sm:grid-cols-4 gap-2 overflow-x-auto no-scrollbar snap-x pb-0.5 sm:pb-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
             {(marketPulse?.macro || [
-              { name: 'GIFT Nifty', sub: 'singapore', price: '25,402', displayChange: '+0.4%', isUp: true },
+              { name: 'GIFT Nifty', sub: 'Singapore', price: '25,402', displayChange: '+0.4%', isUp: true },
               { name: 'India VIX', sub: 'Volatility', price: '15.21', displayChange: '-3.0%', isUp: false },
-              { name: 'Brent Crude', sub: 'USD / Bbl', price: '$91.74', displayChange: '-0.8%', isUp: false },
-              { name: 'USD / INR', sub: 'Forex Spot', price: '₹93.64', displayChange: '-0.3%', isUp: false }
+              { name: 'Brent Crude', sub: 'USD/Bbl', price: '$91.74', displayChange: '-0.8%', isUp: false },
+              { name: 'USD/INR', sub: 'Forex Spot', price: '₹84.38', displayChange: '+0.0%', isUp: false }
             ]).map((m, i) => (
-              <div key={i} className="min-w-[140px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-slate-50/70 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-slate-800 block truncate">{m.name}</span>
+              <div key={i} className="bg-slate-50/70 hover:bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-1 transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 truncate">{m.name}</span>
                   <span className="text-[10px] text-slate-400 font-mono">{m.sub}</span>
                 </div>
-                <span className={`font-mono text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${
-                  m.isUp ? 'text-emerald-700 bg-emerald-50' : (m.name === 'India VIX' || m.name === 'USD / INR' ? 'text-slate-700 bg-slate-100' : 'text-rose-700 bg-rose-50')
-                }`}>
-                  {m.price} ({m.displayChange})
-                </span>
+                <div className="flex items-baseline justify-between pt-1 border-t border-slate-100 font-mono">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900">{m.price}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                    m.isUp ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 bg-slate-100'
+                  }`}>
+                    {m.displayChange}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Market Breadth & Flow (Clean single line without awkward wraps) */}
-        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs text-slate-500 gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
-          <div className="flex items-center space-x-2 shrink-0">
-            <span className="text-slate-400">Flow:</span>
-            <span>FII <strong className="text-emerald-700 font-mono font-medium">{marketPulse?.flows?.fii || '+₹1,420 Cr'}</strong></span>
-            <span className="text-slate-300">•</span>
-            <span>DII <strong className="text-emerald-700 font-mono font-medium">{marketPulse?.flows?.dii || '+₹2,180 Cr'}</strong></span>
+        {/* Market Breadth & Flow */}
+        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] sm:text-xs text-slate-500 gap-1.5 sm:gap-2">
+          <div className="flex items-center space-x-2">
+            <span className="text-slate-400 font-medium">Inst. Flow:</span>
+            <span className="bg-emerald-50 px-2 py-0.5 rounded text-emerald-800 font-mono font-semibold border border-emerald-200/60">
+              FII {marketPulse?.flows?.fii || '+₹1,420 Cr'}
+            </span>
+            <span className="bg-emerald-50 px-2 py-0.5 rounded text-emerald-800 font-mono font-semibold border border-emerald-200/60">
+              DII {marketPulse?.flows?.dii || '+₹2,180 Cr'}
+            </span>
           </div>
-          <div className="flex items-center space-x-2 text-slate-400 font-mono shrink-0">
-            <span>52W H: <strong className="text-slate-700">{marketPulse?.fiftyTwoWeek?.high || 182}</strong></span>
-            <span>L: <strong className="text-slate-700">{marketPulse?.fiftyTwoWeek?.low || 19}</strong></span>
+          <div className="flex items-center space-x-2 text-slate-400 font-mono text-[11px]">
+            <span>52W Highs: <strong className="text-slate-800 font-bold">{marketPulse?.fiftyTwoWeek?.high || 182}</strong></span>
+            <span>•</span>
+            <span>Lows: <strong className="text-slate-800 font-bold">{marketPulse?.fiftyTwoWeek?.low || 19}</strong></span>
           </div>
         </div>
       </section>
@@ -554,23 +615,37 @@ export default function HomePage() {
       )}
 
       {/* 2. HERO SEARCH */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-8 md:p-10 text-center">
-        <div className="max-w-xl mx-auto space-y-3.5 sm:space-y-4">
+      <section className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-8 text-center space-y-3 shadow-xs">
+        <div className="max-w-xl mx-auto space-y-3 sm:space-y-4">
           
-          {/* Brand Mark & Tagline */}
-          <div className="flex flex-col items-center justify-center space-y-1.5 sm:space-y-2">
-            <img 
-              src="/logo.png" 
-              alt="ProfitSheets" 
-              className="h-10 sm:h-12 w-auto object-contain"
-            />
-            <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed line-clamp-2 sm:line-clamp-none font-normal">
-              Search over 4,000+ Indian public companies for 3-year audited financials, concalls, and 1-click Kite demat orders.
-            </p>
+          {/* Brand Mark & Tagline (Desktop Logo + Tagline, Mobile Sleek Header) */}
+          <div className="space-y-1">
+            <div className="hidden sm:flex flex-col items-center justify-center space-y-1.5">
+              <img 
+                src="/logo.png" 
+                alt="ProfitSheets" 
+                className="h-11 w-auto object-contain"
+              />
+              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed font-normal">
+                Search over 4,000+ Indian public companies for 3-year audited financials, concalls, and 1-click Kite demat orders.
+              </p>
+            </div>
+
+            <div className="sm:hidden text-left pb-0.5">
+              <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center justify-between">
+                <span>Search Indian Equities</span>
+                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  NSE & BSE
+                </span>
+              </h1>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Audited financials, live ticks, concall transcripts & reports
+              </p>
+            </div>
           </div>
 
           {/* Omnibar Search Container */}
-          <div className="relative text-left pt-0.5" ref={searchRef}>
+          <div className="relative text-left" ref={searchRef}>
             <div className="relative flex items-center bg-white rounded-xl border border-slate-300 shadow-2xs hover:border-slate-400 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-colors p-1 sm:p-1.5">
               <div className="pl-2.5 sm:pl-3 pr-1.5 text-slate-400">
                 {loading ? (
@@ -679,23 +754,23 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Clean Trending Suggestions (Horizontal Swipe on Mobile, Wrap on Desktop) */}
-          <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5 whitespace-nowrap text-xs text-slate-500 sm:flex-wrap sm:justify-center sm:gap-2 sm:space-x-0">
-            <span className="text-slate-400 shrink-0 text-xs">Trending:</span>
+          {/* Clean Trending Suggestions */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5 whitespace-nowrap text-xs text-slate-500 sm:flex-wrap sm:justify-center sm:gap-1.5 sm:space-x-0">
+            <span className="text-slate-400 shrink-0 text-[11px] font-medium">Trending:</span>
             {[
-              { label: 'Lalithaa', sym: 'LALITHAA' },
               { label: 'Reliance', sym: 'RELIANCE' },
               { label: 'TCS', sym: 'TCS' },
               { label: 'HDFC Bank', sym: 'HDFCBANK' },
               { label: 'Infosys', sym: 'INFY' },
               { label: 'Tata Motors', sym: 'TATAMOTORS' },
-              { label: 'Avantel', sym: 'AVANTEL' },
-              { label: 'HBL Power', sym: 'HBLPOWER' }
+              { label: 'SBI', sym: 'SBIN' },
+              { label: 'ICICI Bank', sym: 'ICICIBANK' },
+              { label: 'Lalithaa', sym: 'LALITHAA' }
             ].map((c) => (
               <button
                 key={c.sym}
                 onClick={() => handleSelectCompany(c.sym)}
-                className="px-2.5 py-1 rounded-md bg-white border border-slate-200 hover:border-slate-300 hover:text-slate-900 text-slate-700 text-xs font-medium transition-colors cursor-pointer shrink-0"
+                className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/90 text-slate-700 text-[11px] font-mono font-medium transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs"
               >
                 {c.label}
               </button>
@@ -704,27 +779,27 @@ export default function HomePage() {
 
           {/* Minimalist Recent Searches Line */}
           {recentSearches.length > 0 && (
-            <div className="flex items-center justify-center gap-2 text-xs text-slate-400 font-mono pt-0.5 overflow-x-auto no-scrollbar whitespace-nowrap">
-              <span className="flex items-center gap-1 text-[11px] font-sans text-slate-400 shrink-0">
-                <Clock className="w-3 h-3 text-slate-400" /> Recent:
-              </span>
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
+            <div className="flex items-center justify-between sm:justify-center gap-2 text-xs text-slate-400 font-mono pt-1 border-t border-slate-100 overflow-x-auto no-scrollbar whitespace-nowrap">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <span className="flex items-center gap-1 text-[11px] font-sans text-slate-400 shrink-0">
+                  <Clock className="w-3 h-3 text-slate-400" /> Recent:
+                </span>
                 {recentSearches.slice(0, 5).map((sym) => (
                   <button
                     key={sym}
                     onClick={() => handleSelectCompany(sym)}
-                    className="font-medium text-slate-600 hover:text-emerald-700 transition-colors cursor-pointer shrink-0"
+                    className="font-mono text-[11px] font-medium text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer shrink-0 bg-slate-100 px-1.5 py-0.5 rounded"
                   >
                     {sym}
                   </button>
                 ))}
-                <button
-                  onClick={handleClearRecent}
-                  className="text-[11px] text-slate-400 hover:text-rose-600 underline font-sans cursor-pointer shrink-0"
-                >
-                  Clear
-                </button>
               </div>
+              <button
+                onClick={handleClearRecent}
+                className="text-[11px] text-slate-400 hover:text-rose-600 underline font-sans cursor-pointer shrink-0"
+              >
+                Clear
+              </button>
             </div>
           )}
 
@@ -825,20 +900,44 @@ export default function HomePage() {
       )}
 
       {/* 4. LIVE MARKET MOVERS */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-6 shadow-xs space-y-3.5">
+      <section className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5">
         
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 sm:pb-3 border-b border-slate-100">
-          <div>
-            <div className="flex items-center space-x-2">
-              <Activity className="w-4 h-4 text-slate-700" />
-              <h2 className="text-sm sm:text-base font-semibold text-slate-900">
-                Market movers & bluechips
-              </h2>
+          <div className="flex items-center justify-between sm:justify-start gap-3">
+            <div>
+              <div className="flex items-center space-x-2">
+                <Activity className="w-4 h-4 text-emerald-600" />
+                <h2 className="text-sm sm:text-base font-semibold text-slate-900">
+                  Market movers & bluechips
+                </h2>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                Live quotes, 52-week bounds, and intraday range dynamics
+              </p>
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-              Live quotes, 52-week bounds, and intraday range dynamics
-            </p>
+
+            {/* Mobile View Mode Switcher (Grid vs List) */}
+            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg shrink-0">
+              <button
+                onClick={() => setStockViewMode('GRID')}
+                title="Card Grid view"
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                  stockViewMode === 'GRID' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-400 hover:text-slate-700'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setStockViewMode('LIST')}
+                title="List view"
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                  stockViewMode === 'LIST' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-400 hover:text-slate-700'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* Filter Tabs (Horizontal Scrollable on Mobile, Zero Text Wrap) */}
@@ -888,126 +987,188 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Stock Cards Grid (Compact 1 Column on Small Mobile, 2 on Tablet, 4 on Desktop) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-          {popularLoading && filteredPopular.length === 0 ? (
-            [1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-              <div key={n} className="h-28 rounded-xl bg-slate-50 border border-slate-100"></div>
-            ))
-          ) : (
-            filteredPopular.map((stock, i) => {
-              const isPositive = (stock.changePercent || 0) >= 0;
-              const range = Math.max((stock.high || stock.price) - (stock.low || stock.price), 0.01);
-              const posPct = Math.max(0, Math.min(100, (((stock.price - (stock.low || stock.price)) / range) * 100)));
-              const isIndianStock = stock.exchange === 'NSE' || stock.exchange === 'BSE' || stock.currency === 'INR' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));
-              const cardCurrencySymbol = stock.currencySymbol || (isIndianStock ? '₹' : '$');
-              const isUSD = cardCurrencySymbol === '$';
+        {/* Stock List / Grid View Content */}
+        {stockViewMode === 'LIST' ? (
+          /* High-Density Compact List View (Ideal for Fast Mobile Scanning) */
+          <div className="bg-white rounded-xl border border-slate-200/90 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+            {popularLoading && filteredPopular.length === 0 ? (
+              [1, 2, 3, 4, 5, 6].map(n => (
+                <div key={n} className="h-14 p-3 bg-slate-50 animate-pulse"></div>
+              ))
+            ) : (
+              filteredPopular.map((stock, i) => {
+                const isPositive = (stock.changePercent || 0) >= 0;
+                const isIndianStock = stock.exchange === 'NSE' || stock.exchange === 'BSE' || stock.currency === 'INR' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));
+                const cardCurrencySymbol = stock.currencySymbol || (isIndianStock ? '₹' : '$');
+                const isUSD = cardCurrencySymbol === '$';
 
-              return (
-                <div
-                  key={i}
-                  onClick={() => handleSelectCompany(stock.symbol)}
-                  className="bg-white hover:bg-slate-50/60 rounded-xl border border-slate-200 hover:border-slate-300 p-3 sm:p-3.5 transition-colors cursor-pointer flex flex-col justify-between space-y-2 sm:space-y-2.5"
-                >
-                  <div>
-                    {/* Header: Symbol & Sector */}
-                    <div className="flex items-center justify-between pb-1">
-                      <div className="flex items-center space-x-1.5">
-                        <span className="font-mono font-semibold text-slate-900 text-xs sm:text-sm">
+                return (
+                  <div
+                    key={i}
+                    onClick={() => handleSelectCompany(stock.symbol)}
+                    className="p-3 hover:bg-slate-50/80 transition-colors cursor-pointer flex items-center justify-between gap-3 group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-700 transition-colors">
                           {stock.symbol}
                         </span>
-                        <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-slate-100 text-slate-500">
+                        <span className="text-[9px] font-mono uppercase px-1 py-0.2 rounded bg-slate-100 text-slate-500">
                           {stock.exchange || 'NSE'}
                         </span>
                       </div>
-                      <span className={`text-xs font-mono font-medium inline-flex items-center px-1.5 py-0.5 rounded ${
-                        isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5" title={stock.name}>
+                        {stock.name || stock.symbol}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0 font-mono">
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 block tabular-nums">
+                        {cardCurrencySymbol}{Number(stock.price || 0).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className={`inline-flex items-center text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded mt-0.5 tabular-nums ${
+                        isPositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
                       }`}>
                         {isPositive ? '+' : ''}{Number(stock.changePercent || 0).toFixed(2)}%
                       </span>
                     </div>
-
-                    <p className="text-xs text-slate-500 truncate" title={stock.name}>
-                      {stock.name || stock.symbol}
-                    </p>
                   </div>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          /* Card Grid View with Enhanced Legibility */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+            {popularLoading && filteredPopular.length === 0 ? (
+              [1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                <div key={n} className="h-32 rounded-xl bg-slate-50 border border-slate-100 animate-pulse"></div>
+              ))
+            ) : (
+              filteredPopular.map((stock, i) => {
+                const isPositive = (stock.changePercent || 0) >= 0;
+                const range = Math.max((stock.high || stock.price) - (stock.low || stock.price), 0.01);
+                const posPct = Math.max(0, Math.min(100, (((stock.price - (stock.low || stock.price)) / range) * 100)));
+                const isIndianStock = stock.exchange === 'NSE' || stock.exchange === 'BSE' || stock.currency === 'INR' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()));
+                const cardCurrencySymbol = stock.currencySymbol || (isIndianStock ? '₹' : '$');
+                const isUSD = cardCurrencySymbol === '$';
 
-                  {/* Price & Intraday Range Indicator */}
-                  <div className="space-y-1">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-sm sm:text-base font-semibold font-mono text-slate-900 tabular-nums">
-                        {cardCurrencySymbol}{Number(stock.price || 0).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                      <span className="text-[11px] font-mono text-slate-400">
-                        Vol: {stock.volume >= 10000000 ? `${(stock.volume / 10000000).toFixed(1)}Cr` : stock.volume >= 100000 ? `${(stock.volume / 100000).toFixed(1)}L` : String(stock.volume || 0)}
-                      </span>
+                return (
+                  <div
+                    key={i}
+                    onClick={() => handleSelectCompany(stock.symbol)}
+                    className="bg-white hover:bg-slate-50/70 rounded-xl border border-slate-200 hover:border-slate-300 p-3.5 transition-all cursor-pointer flex flex-col justify-between space-y-2.5 shadow-2xs hover:shadow-xs group"
+                  >
+                    <div>
+                      {/* Header: Symbol & Sector */}
+                      <div className="flex items-center justify-between pb-1">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-700 transition-colors">
+                            {stock.symbol}
+                          </span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                            {stock.exchange || 'NSE'}
+                          </span>
+                        </div>
+                        <span className={`text-xs font-mono font-bold inline-flex items-center px-1.5 py-0.5 rounded ${
+                          isPositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                        }`}>
+                          {isPositive ? '+' : ''}{Number(stock.changePercent || 0).toFixed(2)}%
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 truncate" title={stock.name}>
+                        {stock.name || stock.symbol}
+                      </p>
                     </div>
 
-                    {/* Day's Range Mini Bar */}
-                    <div className="space-y-0.5">
-                      <div className="h-1 bg-slate-100 rounded-full overflow-hidden relative">
-                        <div 
-                          className={`h-full rounded-full ${isPositive ? 'bg-emerald-600' : 'bg-rose-600'}`}
-                          style={{ width: `${posPct}%` }}
-                        />
+                    {/* Price & Intraday Range Indicator */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-baseline justify-between font-mono">
+                        <span className="text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+                          {cardCurrencySymbol}{Number(stock.price || 0).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          Vol: {stock.volume >= 10000000 ? `${(stock.volume / 10000000).toFixed(1)}Cr` : stock.volume >= 100000 ? `${(stock.volume / 100000).toFixed(1)}L` : String(stock.volume || 0)}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
-                        <span>L: {cardCurrencySymbol}{Number(stock.low || stock.price).toFixed(1)}</span>
-                        <span>H: {cardCurrencySymbol}{Number(stock.high || stock.price).toFixed(1)}</span>
+
+                      {/* Day's Range Visual Bar */}
+                      <div className="space-y-1">
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden relative">
+                          <div 
+                            className={`h-full rounded-full transition-all ${isPositive ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                            style={{ width: `${posPct}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-mono font-medium text-slate-500">
+                          <span>L: {cardCurrencySymbol}{Number(stock.low || stock.price).toFixed(1)}</span>
+                          <span className="text-slate-400 text-[9px] uppercase tracking-wider">Day Range</span>
+                          <span>H: {cardCurrencySymbol}{Number(stock.high || stock.price).toFixed(1)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Footer Action */}
-                  <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-400 font-mono text-[10px]">
-                      {stock.fiftyTwoWeekHigh ? `52W H: ${cardCurrencySymbol}${stock.fiftyTwoWeekHigh}` : stock.sector || 'Equities'}
-                    </span>
-                    <span className="text-emerald-700 font-medium flex items-center gap-0.5 text-xs">
-                      <span>Analyze</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </span>
+                    {/* Footer Action */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <span className="text-slate-400 font-mono text-[10px]">
+                        {stock.fiftyTwoWeekHigh ? `52W H: ${cardCurrencySymbol}${stock.fiftyTwoWeekHigh}` : stock.sector || 'Equities'}
+                      </span>
+                      <span className="text-emerald-700 font-semibold flex items-center gap-0.5 text-xs group-hover:translate-x-0.5 transition-transform">
+                        <span>Analyze</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </section>
 
       {/* 5. SECTOR PERFORMANCE RADAR */}
-      <section className="bg-slate-50/70 rounded-2xl border border-slate-200 p-3.5 sm:p-5 space-y-3">
+      <section className="bg-slate-50/70 rounded-2xl border border-slate-200/90 p-3.5 sm:p-5 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <PieChart className="w-4 h-4 text-slate-600" />
+            <PieChart className="w-4 h-4 text-emerald-600" />
             <h2 className="text-xs sm:text-sm font-semibold text-slate-900">
               Sector performance radar
             </h2>
           </div>
-          <span className="text-[11px] sm:text-xs text-slate-400 font-mono">Ranked by session change</span>
+          <span className="text-[10px] sm:text-xs text-slate-400 font-mono">Ranked by session change</span>
         </div>
 
-        <div className="flex sm:grid sm:grid-cols-4 gap-2 overflow-x-auto no-scrollbar snap-x pb-0.5 sm:pb-0">
-          {sectorData.map((sec, i) => (
+        {/* 2-Col Grid on Mobile, 4-Col Grid on Desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+          {(marketPulse?.sectors && marketPulse.sectors.length > 0 ? marketPulse.sectors : sectorData).map((sec, i) => (
             <div 
               key={i} 
               onClick={() => handleSelectCompany(sec.topStock)}
-              className="min-w-[130px] sm:min-w-0 snap-start shrink-0 sm:shrink bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer flex flex-col justify-between space-y-1.5"
+              className="bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer flex flex-col justify-between space-y-2 shadow-2xs hover:shadow-xs group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-800 truncate">
+                <span className="text-xs font-bold text-slate-900 truncate">
                   {sec.name}
                 </span>
-                <span className={`text-[11px] sm:text-xs font-mono font-medium px-1.5 py-0.2 rounded shrink-0 ${
-                  sec.isUp ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                <span className={`text-[10px] sm:text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                  sec.isUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
                 }`}>
                   {sec.isUp ? '+' : ''}{sec.change}%
                 </span>
               </div>
 
-              <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                <span>Top: <strong className="text-slate-700">{sec.topStock}</strong></span>
-                <span className="text-emerald-700 font-medium">{sec.topReturn}</span>
+              {/* Visual Sector Strength Bar */}
+              <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full ${sec.isUp ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                  style={{ width: `${Math.min(100, Math.max(20, Math.abs(parseFloat(sec.change) || 1) * 35))}%` }}
+                />
+              </div>
+
+              <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 font-mono">
+                <span>Top: <strong className="text-slate-800">{sec.topStock}</strong></span>
+                <span className="text-emerald-700 font-semibold">{sec.topReturn}</span>
               </div>
             </div>
           ))}
@@ -1026,7 +1187,7 @@ export default function HomePage() {
             </p>
           </div>
           <button
-            onClick={() => handleSelectCompany('LALITHAA')}
+            onClick={() => handleSelectCompany('RELIANCE')}
             className="text-xs font-medium text-emerald-700 hover:underline flex items-center gap-0.5 cursor-pointer shrink-0"
           >
             <span>Explore all</span>
@@ -1075,44 +1236,106 @@ export default function HomePage() {
       </section>
 
       {/* 7. LIVE BSE CORPORATE ANNOUNCEMENTS & CONCALL RADAR */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-6 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 sm:pb-3 border-b border-slate-100 gap-1 sm:gap-2">
-          <div>
-            <h2 className="text-sm sm:text-base font-semibold text-slate-900">
-              Live BSE corporate filings & concalls
-            </h2>
-            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
-              Official regulatory disclosures, outcome of board meetings, and investor presentations
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 border-b border-slate-100 gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <h2 className="text-sm sm:text-base font-semibold text-slate-900 flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-emerald-600" />
+                <span>Live BSE corporate filings & concalls</span>
+              </h2>
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500">
+              Official regulatory disclosures, board meeting outcomes, and investor presentations across market leaders
             </p>
           </div>
-          <span className="text-[10px] sm:text-xs font-mono text-slate-400">
-            Source: BSE India corporate filings
-          </span>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 pt-1 sm:pt-0">
+            {[
+              { id: 'ALL', label: 'All Filings' },
+              { id: 'RESULTS', label: 'Financial Results' },
+              { id: 'BOARD', label: 'Board Meets' },
+              { id: 'CONCALL', label: 'Concalls & Ppts' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setAnnouncementFilter(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  announcementFilter === tab.id
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-2.5">
+        {/* Announcements Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
           {announcementsLoading ? (
-            [1, 2, 3, 4].map(n => (
-              <div key={n} className="h-16 rounded-xl bg-slate-50 border border-slate-100"></div>
+            [1, 2, 3, 4, 5, 6].map(n => (
+              <div key={n} className="h-28 rounded-xl bg-slate-50/70 border border-slate-200/60 p-4 flex flex-col justify-between animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-5 bg-slate-200 rounded" />
+                    <div className="w-32 h-4 bg-slate-200 rounded" />
+                  </div>
+                  <div className="w-20 h-4 bg-slate-200 rounded" />
+                </div>
+                <div className="w-4/5 h-4 bg-slate-200 rounded my-2" />
+                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                  <div className="w-24 h-3 bg-slate-200 rounded" />
+                  <div className="w-16 h-6 bg-slate-200 rounded" />
+                </div>
+              </div>
             ))
-          ) : (
-            announcements.map((ann, i) => (
-              <div 
-                key={i}
-                className="p-2.5 sm:p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition-colors flex items-start justify-between gap-2.5 sm:gap-3"
-              >
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200/70 text-slate-700 shrink-0">
-                      {ann.type || 'Filing'}
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono">
-                      {ann.date}
+          ) : (filteredAnnouncements.length > 0 ? filteredAnnouncements : announcements).slice(0, 8).map((ann, i) => (
+            <div 
+              key={ann.id || i}
+              className="p-3.5 sm:p-4 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      onClick={() => handleSelectCompany(ann.symbol || 'RELIANCE')}
+                      className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold hover:bg-emerald-600 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                      title={`View ${ann.symbol || 'stock'} analysis`}
+                    >
+                      {ann.symbol || 'BSE'}
+                    </button>
+                    <span 
+                      className="text-xs font-semibold text-slate-900 truncate max-w-[160px] sm:max-w-[220px]" 
+                      title={ann.companyName}
+                    >
+                      {ann.companyName}
                     </span>
                   </div>
-                  <h4 className="text-xs font-medium text-slate-800 leading-snug line-clamp-1 sm:line-clamp-2">
-                    {ann.headline}
-                  </h4>
+
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 ${getAnnouncementBadgeStyle(ann.type)}`}>
+                    {ann.type || 'Filing'}
+                  </span>
+                </div>
+
+                <h4 
+                  className="text-xs text-slate-700 leading-relaxed line-clamp-2 group-hover:text-slate-900 transition-colors font-normal"
+                  title={ann.headline}
+                >
+                  {ann.headline}
+                </h4>
+              </div>
+
+              <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400">
+                  <Clock className="w-3 h-3 text-slate-400" />
+                  <span>{ann.date}</span>
                 </div>
 
                 {ann.hasPdf && ann.pdfUrl ? (
@@ -1120,23 +1343,24 @@ export default function HomePage() {
                     href={ann.pdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2 py-1 rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-mono text-[11px] font-medium shrink-0 flex items-center gap-1 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-200 hover:border-emerald-600 text-[11px] font-mono font-medium transition-all cursor-pointer shadow-2xs hover:shadow-xs shrink-0"
+                    title={`Open official BSE filing PDF for ${ann.companyName}`}
                   >
-                    <span>PDF</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>PDF ↗</span>
                   </a>
                 ) : (
                   <button
-                    onClick={() => handleSelectCompany(ann.symbol || 'LALITHAA')}
-                    className="px-2 py-1 rounded bg-white border border-slate-200 text-slate-700 font-mono text-[11px] font-medium shrink-0 flex items-center gap-1 hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() => handleSelectCompany(ann.symbol || 'RELIANCE')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-mono font-medium transition-colors cursor-pointer shrink-0"
                   >
-                    <span>View</span>
+                    <span>View Stock</span>
                     <ChevronRight className="w-3 h-3 text-slate-400" />
                   </button>
                 )}
               </div>
-            ))
-          )}
+            </div>
+          ))}
         </div>
       </section>
 

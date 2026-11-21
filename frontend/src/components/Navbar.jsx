@@ -127,7 +127,7 @@ export default function Navbar() {
               </Link>
 
               <Link 
-                to="/company/LALITHAA" 
+                to="/company/RELIANCE" 
                 className={`hover:text-slate-900 transition-colors ${location.pathname.startsWith('/company') ? 'text-emerald-600 font-extrabold' : ''}`}
               >
                 SCREENS
@@ -166,7 +166,7 @@ export default function Navbar() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsFocused(true)}
-                    placeholder="Search company (e.g. LALITHAA)..."
+                    placeholder="Search company (e.g. RELIANCE, TCS)..."
                     className="w-full py-1.5 pr-3 text-xs text-slate-800 placeholder-slate-400 bg-transparent focus:outline-none font-sans"
                   />
                 </div>
@@ -326,7 +326,7 @@ export default function Navbar() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search stocks (e.g. LALITHAA)..."
+                placeholder="Search stocks (e.g. RELIANCE, TCS)..."
                 className="w-full py-2 pl-2 pr-3 text-xs text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
               />
             </div>
@@ -363,11 +363,11 @@ export default function Navbar() {
             </Link>
 
             <Link
-              to="/company/LALITHAA"
+              to="/company/RELIANCE"
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50"
             >
-              <span>SCREENS (LALITHAA)</span>
+              <span>SCREENS</span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </Link>
 
@@ -393,6 +393,24 @@ export default function Navbar() {
               className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50"
             >
               <span>TRADE JOURNAL & HISTORY</span>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </Link>
+
+            <Link
+              to="/about"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 text-slate-600 font-medium"
+            >
+              <span>ABOUT PROFITSHEETS</span>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </Link>
+
+            <Link
+              to="/support"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 text-slate-600 font-medium"
+            >
+              <span>HELP & SUPPORT</span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </Link>
           </nav>

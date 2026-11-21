@@ -119,6 +119,7 @@ export async function fetchBseCorporateAnnouncements(symbol) {
       return {
         id: item.NEWSID || `bse_${idx}_${Date.now()}`,
         scripCode: item.SCRIP_CD,
+        symbol: cleanSym,
         companyName: item.SLONGNAME || cleanSym,
         headline,
         summary: item.MORE ? item.MORE.replace(/<[^>]*>?/gm, '').trim() : '',
@@ -137,5 +138,46 @@ export async function fetchBseCorporateAnnouncements(symbol) {
   } catch (err) {
     console.warn(`BSE Announcements fetch error for ${cleanSym} (${scripCode}):`, err.message);
     return [];
+  }
+}
+
+let marketWideCache = null;
+let lastMarketWideFetch = 0;
+const MARKET_WIDE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache
+
+export async function fetchMarketWideBseAnnouncements(limit = 12) {
+  if (marketWideCache && (Date.now() - lastMarketWideFetch < MARKET_WIDE_CACHE_TTL)) {
+    return marketWideCache.slice(0, limit);
+  }
+
+  // Cross-sector representative market leaders with active BSE filings
+  const coreWatch = [
+    'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATAMOTORS', 
+    'SBIN', 'ICICIBANK', 'ITC', 'BHARTIARTL', 'LT', 
+    'HBLPOWER', 'BAJFINANCE', 'MARUTI', 'LALITHAA'
+  ];
+
+  try {
+    const results = await Promise.all(
+      coreWatch.map(sym => fetchBseCorporateAnnouncements(sym).catch(() => []))
+    );
+    const combined = results.flat();
+
+    // Sort by chronological filing timestamp descending
+    combined.sort((a, b) => {
+      const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return tb - ta;
+    });
+
+    if (combined.length > 0) {
+      marketWideCache = combined;
+      lastMarketWideFetch = Date.now();
+    }
+
+    return (marketWideCache || []).slice(0, limit);
+  } catch (err) {
+    console.warn('Market-wide BSE announcements fetch error:', err.message);
+    return marketWideCache ? marketWideCache.slice(0, limit) : [];
   }
 }

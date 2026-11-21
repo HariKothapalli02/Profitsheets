@@ -222,7 +222,92 @@ export default function HistoryPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* Mobile Cards View (Phones & Tablets) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {orders.map((order, idx) => {
+                const isBuy = order.action === 'BUY';
+                const dateStr = order.timestamp 
+                  ? new Date(order.timestamp).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })
+                  : 'Just now';
+
+                return (
+                  <div key={idx} className="p-4 space-y-2.5 hover:bg-slate-50/50 transition-colors">
+                    {/* Header: Stock, Action Badge & Status */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Link 
+                          to={`/company/${order.symbol}`}
+                          className="font-black text-sm text-slate-900 hover:text-indigo-600 font-mono"
+                        >
+                          {order.symbol}
+                        </Link>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${
+                          isBuy 
+                            ? 'bg-emerald-50 text-[#00965e] border border-emerald-200' 
+                            : 'bg-rose-50 text-[#df1d44] border border-rose-200'
+                        }`}>
+                          {isBuy ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
+                          {order.action}
+                        </span>
+                      </div>
+
+                      {/* Status */}
+                      <div>
+                        {order.status === 'PENDING' || order.status === 'OPEN' ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-amber-600 font-mono px-2 py-0.5 rounded bg-amber-50 border border-amber-200">
+                            <Clock className="w-3 h-3 mr-1 animate-pulse" />
+                            PENDING
+                          </span>
+                        ) : order.status === 'REJECTED' ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-rose-600 font-mono px-2 py-0.5 rounded bg-rose-50 border border-rose-200">
+                            ✕ REJECTED
+                          </span>
+                        ) : order.status === 'CANCELLED' ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-slate-500 font-mono px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+                            ⊘ CANCELLED
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 font-mono px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            EXECUTED
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Stats Matrix */}
+                    <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-2.5 rounded-xl text-xs font-mono">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-sans block">Qty</span>
+                        <strong className="text-slate-800">{order.quantity}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-sans block">Price</span>
+                        <strong className="text-slate-800">₹{Number(order.price).toFixed(2)}</strong>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 font-sans block">Total</span>
+                        <strong className="text-slate-900 font-black">
+                          ₹{Number(order.total || (order.quantity * order.price)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Footer: Date & Broker */}
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5">
+                      <span>{dateStr}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">
+                        {order.broker || 'Demo Wallet'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500 font-bold font-mono">
@@ -307,7 +392,8 @@ export default function HistoryPage() {
               </tbody>
             </table>
           </div>
-        )}
+        </>
+      )}
       </div>
 
     </div>

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import KiteSettingsModal from './components/KiteSettingsModal';
+import ScrollToTop from './components/ScrollToTop';
 
 import HomePage from './pages/HomePage';
 import CompanyPage from './pages/CompanyPage';
@@ -18,11 +19,14 @@ import SupportPage from './pages/SupportPage';
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fafc] text-slate-900 font-sans antialiased">
+      {/* Global Scroll-to-Top Enforcer on all route changes */}
+      <ScrollToTop />
+
       {/* Authentic Screener.in Top Header */}
       <Navbar />
 
-      {/* Main Screener Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      {/* Main Screener Viewport - Mobile-optimized padding for edge-to-edge alignment */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 py-3 sm:py-5">
         <Routes>
           {/* 1. Root Homepage */}
           <Route path="/" element={<HomePage />} />

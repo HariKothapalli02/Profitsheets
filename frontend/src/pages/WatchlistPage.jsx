@@ -22,6 +22,7 @@ import {
   removeWatchlistSymbol, 
   getStoredWatchlist 
 } from '../utils/watchlist';
+import { CardGridSkeleton, BrandedSpinner } from '../components/LoadingAnimations';
 
 export default function WatchlistPage() {
   const { user, token } = useAuth();
@@ -170,11 +171,12 @@ export default function WatchlistPage() {
 
       {/* 2. Main Watchlist Grid / Empty State */}
       {loading ? (
-        <div className="py-20 text-center space-y-3">
-          <div className="w-8 h-8 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin mx-auto"></div>
-          <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-            Fetching real-time quotes for your watchlist...
-          </p>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-50/70 border border-emerald-200/60 rounded-xl text-xs font-semibold text-emerald-800">
+            <BrandedSpinner size="sm" />
+            <span>Streaming real-time exchange ticks for your watchlist...</span>
+          </div>
+          <CardGridSkeleton count={6} />
         </div>
       ) : stockDetails.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200/90 p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4">

@@ -12,6 +12,7 @@ import {
   Download
 } from 'lucide-react';
 import axios from 'axios';
+import { BrandedSpinner } from './LoadingAnimations';
 
 export default function ScreenerChart({ symbol, currentPrice = 349.4, company = {}, currencySymbol: propCurrencySymbol }) {
   const isIndian = company.currency === 'INR' || company.exchange === 'NSE' || company.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(symbol?.toUpperCase()));
@@ -734,6 +735,14 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
+        {loading && (
+          <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-[2px] flex items-center justify-center transition-opacity rounded-xl">
+            <div className="flex items-center gap-2.5 px-4 py-2 bg-white rounded-xl shadow-md border border-slate-200 text-xs font-semibold text-slate-700">
+              <BrandedSpinner size="sm" />
+              <span>Streaming {symbol} Candles...</span>
+            </div>
+          </div>
+        )}
         <svg
           ref={svgRef}
           viewBox={`0 0 ${chartData.svgW} ${chartData.svgH}`}

@@ -21,7 +21,11 @@ export const ANGEL_TOKENS = {
   'ASIANPAINT': { token: '236', exchange: 'NSE', name: 'Asian Paints Ltd' },
   'HCLTECH': { token: '7229', exchange: 'NSE', name: 'HCL Technologies Ltd' },
   'SUNPHARMA': { token: '3351', exchange: 'NSE', name: 'Sun Pharma Ltd' },
-  'TITAN': { token: '3506', exchange: 'NSE', name: 'Titan Company Ltd' }
+  'TITAN': { token: '3506', exchange: 'NSE', name: 'Titan Company Ltd' },
+  'HBLPOWER': { token: '517271', exchange: 'BSE', name: 'HBL Power Systems Ltd' },
+  'AVANTEL': { token: '532406', exchange: 'BSE', name: 'Avantel Limited' },
+  'SANDUMA': { token: '504918', exchange: 'BSE', name: 'The Sandur Manganese & Iron Ores Ltd' },
+  'SBCL': { token: '513097', exchange: 'BSE', name: 'Shivalik Bimetal Controls Ltd' }
 };
 
 export const ANGEL_API_KEY = process.env.ANGEL_API_KEY || 'o8RqGmQN';

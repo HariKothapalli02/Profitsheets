@@ -22,6 +22,7 @@ import {
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useKite } from '../context/KiteContext';
+import { ChartSkeleton, TableSkeleton } from './LoadingAnimations';
 
 export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
   const { user, fetchCurrentUser } = useAuth();
@@ -280,12 +281,19 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
     }
 
     return (
-      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+      <div className="overflow-x-auto border border-slate-200 rounded-xl no-scrollbar">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold font-mono">
               {tableData.headers.map((h, i) => (
-                <th key={i} className={`p-2.5 whitespace-nowrap ${i > 0 ? 'text-right' : ''}`}>
+                <th 
+                  key={i} 
+                  className={`p-2.5 whitespace-nowrap ${
+                    i === 0 
+                      ? 'sticky left-0 bg-slate-50 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] min-w-[130px] sm:min-w-[180px]' 
+                      : 'text-right min-w-[85px]'
+                  }`}
+                >
                   {h}
                 </th>
               ))}
@@ -299,8 +307,8 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                     key={cIdx}
                     className={`p-2.5 whitespace-nowrap ${
                       cIdx === 0 
-                        ? 'font-sans font-bold text-slate-800' 
-                        : 'text-right text-slate-700'
+                        ? 'sticky left-0 bg-white z-10 font-sans font-bold text-slate-800 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]' 
+                        : 'text-right text-slate-700 min-w-[85px]'
                     }`}
                   >
                     {cell}
@@ -452,9 +460,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                   </div>
 
                   {loadingChart ? (
-                    <div className="h-56 flex items-center justify-center text-xs text-slate-400 font-mono animate-pulse">
-                      Streaming live candlestick bars...
-                    </div>
+                    <ChartSkeleton height="h-56" />
                   ) : (
                     renderSvgChart()
                   )}
@@ -645,7 +651,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                 <span className="text-[11px] text-slate-400 font-mono">Consolidated Audited Statements</span>
               </div>
               {loadingFundamentals ? (
-                <div className="p-12 text-center text-xs text-slate-400 font-mono animate-pulse">Loading quarterly results...</div>
+                <TableSkeleton rows={4} columns={5} />
               ) : (
                 renderFinancialTable(fundamentals?.quarterly)
               )}
@@ -663,7 +669,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                 <span className="text-[11px] text-slate-400 font-mono">Past 3 Years to TTM</span>
               </div>
               {loadingFundamentals ? (
-                <div className="p-12 text-center text-xs text-slate-400 font-mono animate-pulse">Loading historical P&L statements...</div>
+                <TableSkeleton rows={4} columns={5} />
               ) : (
                 renderFinancialTable(fundamentals?.profitLoss)
               )}
@@ -681,7 +687,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                 <span className="text-[11px] text-slate-400 font-mono">Liabilities & Assets Breakdown</span>
               </div>
               {loadingFundamentals ? (
-                <div className="p-12 text-center text-xs text-slate-400 font-mono animate-pulse">Loading balance sheet records...</div>
+                <TableSkeleton rows={4} columns={5} />
               ) : (
                 renderFinancialTable(fundamentals?.balanceSheet)
               )}
@@ -699,7 +705,7 @@ export default function StockDetailModal({ stock, onClose, onTradeComplete }) {
                 <span className="text-[11px] text-slate-400 font-mono">FII, DII, Public & Promoter Stakes</span>
               </div>
               {loadingFundamentals ? (
-                <div className="p-12 text-center text-xs text-slate-400 font-mono animate-pulse">Loading shareholding breakdowns...</div>
+                <TableSkeleton rows={4} columns={5} />
               ) : (
                 renderFinancialTable(fundamentals?.shareholding)
               )}

@@ -37,6 +37,7 @@ import {
 import OrderExecutionModal from '../components/OrderExecutionModal';
 import AuthRequiredModal from '../components/AuthRequiredModal';
 import ScreenerChart from '../components/ScreenerChart';
+import { CompanyPageSkeleton } from '../components/LoadingAnimations';
 
 export default function CompanyPage() {
   const { symbol } = useParams();
@@ -91,16 +92,21 @@ export default function CompanyPage() {
     fetchCompanyData();
     fetchCompanyNews();
     if (currentSymbol) addRecentSearch(currentSymbol);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentSymbol]);
 
-  const fetchCompanyData = async () => {
+  const fetchCompanyData = async (retryCount = 0) => {
     setLoading(true);
     try {
-      const res = await axios.get(`/api/stocks/financials?symbol=${currentSymbol}`);
-      setData(res.data);
+      const res = await axios.get(`/api/stocks/financials?symbol=${encodeURIComponent(currentSymbol)}`);
+      if (res.data) {
+        setData(res.data);
+      }
     } catch (err) {
       console.warn('Failed to load company financials:', err);
+      if (retryCount < 2) {
+        setTimeout(() => fetchCompanyData(retryCount + 1), 1000);
+        return;
+      }
     } finally {
       setLoading(false);
     }
@@ -109,7 +115,7 @@ export default function CompanyPage() {
   const fetchCompanyNews = async () => {
     setLoadingNews(true);
     try {
-      const res = await axios.get(`/api/stocks/news?symbol=${currentSymbol}`);
+      const res = await axios.get(`/api/stocks/news?symbol=${encodeURIComponent(currentSymbol)}`);
       setNews(res.data || []);
     } catch (err) {
       console.warn('Failed to load company news:', err);
@@ -147,14 +153,7 @@ export default function CompanyPage() {
   };
 
   if (loading) {
-    return (
-      <div className="py-24 text-center space-y-4">
-        <div className="w-10 h-10 rounded-full border-3 border-emerald-500 border-t-transparent animate-spin mx-auto"></div>
-        <p className="text-xs font-semibold text-slate-600 tracking-wide uppercase">
-          Streaming Live Market Feed & Financial Statements for {currentSymbol}...
-        </p>
-      </div>
-    );
+    return <CompanyPageSkeleton symbol={currentSymbol} />;
   }
 
   if (!data) {
@@ -164,15 +163,23 @@ export default function CompanyPage() {
           <Info className="w-6 h-6" />
         </div>
         <div className="space-y-1">
-          <h2 className="text-lg font-bold text-slate-900">Financial Data Unavailable</h2>
-          <p className="text-xs text-slate-500">Could not retrieve live quote for symbol {currentSymbol}.</p>
+          <h2 className="text-lg font-bold text-slate-900">Financial Data Temporarily Unavailable</h2>
+          <p className="text-xs text-slate-500">Could not retrieve live quote for symbol {currentSymbol}. Please retry or check your connection.</p>
         </div>
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors"
-        >
-          Back to Homepage
-        </Link>
+        <div className="flex items-center justify-center gap-3">
+          <button 
+            onClick={() => fetchCompanyData(0)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+          >
+            Retry Loading
+          </button>
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition-colors"
+          >
+            Back to Homepage
+          </Link>
+        </div>
       </div>
     );
   }
@@ -666,7 +673,7 @@ export default function CompanyPage() {
         
         {/* Navigation Tabs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-          <div className="flex items-center space-x-1 overflow-x-auto pb-1 max-w-full">
+          <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar pb-1 max-w-full whitespace-nowrap">
             {[
               { id: 'quarters', label: 'Quarterly Results' },
               { id: 'pnl', label: 'Profit & Loss' },
@@ -690,9 +697,10 @@ export default function CompanyPage() {
             ))}
           </div>
 
-          <span className="text-[11px] font-mono font-medium text-slate-400 text-right shrink-0">
-            Currency: {currencySymbol} in {isUSD ? 'Millions' : 'Crores'}
-          </span>
+          <div className="flex items-center justify-between sm:justify-end gap-2 text-[11px] font-mono text-slate-400">
+            <span className="sm:hidden text-[10px] text-emerald-600 font-sans font-medium">← Swipe to view history →</span>
+            <span>Currency: {currencySymbol} in {isUSD ? 'Millions' : 'Crores'}</span>
+          </div>
         </div>
 
         {/* Tab 1: Quarterly Results Table */}
@@ -704,51 +712,51 @@ export default function CompanyPage() {
             </div>
 
             {data.quarters && data.quarters.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <div className="overflow-x-auto border border-slate-200 rounded-lg no-scrollbar">
                 <table className="w-full text-left text-xs font-sans divide-y divide-slate-200">
                   <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
-                      <th className="py-2.5 px-3.5">Metric</th>
+                      <th className="py-2.5 px-3.5 sticky left-0 bg-slate-50 z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] min-w-[140px] sm:min-w-0">Metric</th>
                       {data.quarters.map((q, idx) => (
-                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono">{q.period}</th>
+                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono min-w-[85px]">{q.period}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
                     <tr className="hover:bg-slate-50/60 font-semibold">
-                      <td className="py-2.5 px-3.5">Sales / Revenue</td>
+                      <td className="py-2.5 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Sales / Revenue</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums">{q.sales}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Expenses</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Expenses</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{q.expenses}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 font-semibold bg-slate-50/40">
-                      <td className="py-2.5 px-3.5 text-emerald-800">Operating Profit (EBITDA)</td>
+                      <td className="py-2.5 px-3.5 text-emerald-800 sticky left-0 bg-slate-50 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Operating Profit (EBITDA)</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-emerald-700 font-bold">{q.operatingProfit}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">OPM %</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">OPM %</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-semibold">{q.opm}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Other Income</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Other Income</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{q.otherIncome}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Interest & Finance Cost</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Interest & Finance Cost</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{q.interest}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Profit before tax (PBT)</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Profit before tax (PBT)</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{q.profitBeforeTax}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 font-bold bg-emerald-50/40 border-t border-slate-200">
-                      <td className="py-2.5 px-3.5 text-slate-900">Net Profit (PAT)</td>
+                      <td className="py-2.5 px-3.5 text-slate-900 sticky left-0 bg-emerald-50/80 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Net Profit (PAT)</td>
                       {data.quarters.map((q, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-slate-900 font-extrabold">{q.netProfit}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-700 font-mono">
-                      <td className="py-2 px-3.5 font-sans font-semibold">EPS in {currencySymbol}</td>
+                      <td className="py-2 px-3.5 font-sans font-semibold sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">EPS in {currencySymbol}</td>
                       {data.quarters.map((q, i) => (
                         <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-bold">
                           {typeof q.eps === 'string' ? q.eps.replace(/₹/g, currencySymbol) : `${currencySymbol} ${q.eps}`}
@@ -773,39 +781,39 @@ export default function CompanyPage() {
             </div>
 
             {data.profitAndLoss && data.profitAndLoss.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <div className="overflow-x-auto border border-slate-200 rounded-lg no-scrollbar">
                 <table className="w-full text-left text-xs font-sans divide-y divide-slate-200">
                   <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
-                      <th className="py-2.5 px-3.5">Metric</th>
+                      <th className="py-2.5 px-3.5 sticky left-0 bg-slate-50 z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] min-w-[140px] sm:min-w-0">Metric</th>
                       {data.profitAndLoss.map((p, idx) => (
-                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono">{p.year}</th>
+                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono min-w-[85px]">{p.year}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
                     <tr className="hover:bg-slate-50/60 font-semibold">
-                      <td className="py-2.5 px-3.5">Sales</td>
+                      <td className="py-2.5 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Sales</td>
                       {data.profitAndLoss.map((p, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums">{p.sales}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Expenses</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Expenses</td>
                       {data.profitAndLoss.map((p, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{p.expenses}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 font-semibold bg-slate-50/40">
-                      <td className="py-2.5 px-3.5 text-emerald-800">Operating Profit</td>
+                      <td className="py-2.5 px-3.5 text-emerald-800 sticky left-0 bg-slate-50 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Operating Profit</td>
                       {data.profitAndLoss.map((p, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-emerald-700 font-bold">{p.operatingProfit}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">OPM %</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">OPM %</td>
                       {data.profitAndLoss.map((p, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-semibold">{p.opm}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 font-bold bg-emerald-50/40 border-t border-slate-200">
-                      <td className="py-2.5 px-3.5 text-slate-900">Net Profit</td>
+                      <td className="py-2.5 px-3.5 text-slate-900 sticky left-0 bg-emerald-50/80 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Net Profit</td>
                       {data.profitAndLoss.map((p, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-slate-900 font-extrabold">{p.netProfit}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-700 font-mono">
-                      <td className="py-2 px-3.5 font-sans font-semibold">EPS in {currencySymbol}</td>
+                      <td className="py-2 px-3.5 font-sans font-semibold sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">EPS in {currencySymbol}</td>
                       {data.profitAndLoss.map((p, i) => (
                         <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums font-bold">
                           {typeof p.eps === 'string' ? p.eps.replace(/₹/g, currencySymbol) : `${currencySymbol} ${p.eps}`}
@@ -813,7 +821,7 @@ export default function CompanyPage() {
                       ))}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Dividend Payout %</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Dividend Payout %</td>
                       {data.profitAndLoss.map((p, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{p.dividendPayout}</td>)}
                     </tr>
                   </tbody>
@@ -834,51 +842,51 @@ export default function CompanyPage() {
             </div>
 
             {data.balanceSheet && data.balanceSheet.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <div className="overflow-x-auto border border-slate-200 rounded-lg no-scrollbar">
                 <table className="w-full text-left text-xs font-sans divide-y divide-slate-200">
                   <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
-                      <th className="py-2.5 px-3.5">Line Item</th>
+                      <th className="py-2.5 px-3.5 sticky left-0 bg-slate-50 z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] min-w-[140px] sm:min-w-0">Line Item</th>
                       {data.balanceSheet.map((b, idx) => (
-                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono">{b.year}</th>
+                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono min-w-[85px]">{b.year}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2 px-3.5 font-semibold">Equity Capital</td>
+                      <td className="py-2 px-3.5 font-semibold sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Equity Capital</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{b.equityCapital}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2 px-3.5">Reserves & Surplus</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Reserves & Surplus</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{b.reserves}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2 px-3.5">Borrowings</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Borrowings</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{b.borrowings}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2 px-3.5">Other Liabilities</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Other Liabilities</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{b.otherLiabilities}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 font-bold bg-slate-50/80 border-t border-slate-200">
-                      <td className="py-2.5 px-3.5">Total Liabilities</td>
+                      <td className="py-2.5 px-3.5 sticky left-0 bg-slate-50 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Total Liabilities</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums font-bold">{b.totalLiabilities}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2 px-3.5">Fixed Assets (Gross/Net)</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Fixed Assets (Gross/Net)</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{b.fixedAssets}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2 px-3.5">Investments</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Investments</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{b.investments}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2 px-3.5">Other Assets & Working Capital</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Other Assets & Working Capital</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{b.otherAssets}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 font-bold bg-emerald-50/40 border-t border-slate-200">
-                      <td className="py-2.5 px-3.5 text-slate-900">Total Assets</td>
+                      <td className="py-2.5 px-3.5 text-slate-900 sticky left-0 bg-emerald-50/80 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Total Assets</td>
                       {data.balanceSheet.map((b, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-slate-900 font-extrabold">{b.totalAssets}</td>)}
                     </tr>
                   </tbody>
@@ -897,31 +905,31 @@ export default function CompanyPage() {
             </div>
 
             {data.cashFlows && data.cashFlows.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <div className="overflow-x-auto border border-slate-200 rounded-lg no-scrollbar">
                 <table className="w-full text-left text-xs font-sans divide-y divide-slate-200">
                   <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <tr>
-                      <th className="py-2.5 px-3.5">Cash Flow Activity</th>
+                      <th className="py-2.5 px-3.5 sticky left-0 bg-slate-50 z-20 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] min-w-[150px] sm:min-w-0">Cash Flow Activity</th>
                       {data.cashFlows.map((c, idx) => (
-                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono">{c.year}</th>
+                        <th key={idx} className="py-2.5 px-3.5 text-right font-mono min-w-[85px]">{c.year}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
                     <tr className="hover:bg-slate-50/60">
-                      <td className="py-2.5 px-3.5 font-semibold text-emerald-800">Cash from Operating Activity</td>
+                      <td className="py-2.5 px-3.5 font-semibold text-emerald-800 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Cash from Operating Activity</td>
                       {data.cashFlows.map((c, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums text-emerald-700 font-bold">{c.operatingCash}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Cash from Investing Activity</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Cash from Investing Activity</td>
                       {data.cashFlows.map((c, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{c.investingCash}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 text-slate-600">
-                      <td className="py-2 px-3.5">Cash from Financing Activity</td>
+                      <td className="py-2 px-3.5 sticky left-0 bg-white z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Cash from Financing Activity</td>
                       {data.cashFlows.map((c, i) => <td key={i} className="py-2 px-3.5 text-right font-mono tabular-nums">{c.financingCash}</td>)}
                     </tr>
                     <tr className="hover:bg-slate-50/60 font-bold bg-slate-50/80 border-t border-slate-200">
-                      <td className="py-2.5 px-3.5">Net Cash Flow</td>
+                      <td className="py-2.5 px-3.5 sticky left-0 bg-slate-50 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">Net Cash Flow</td>
                       {data.cashFlows.map((c, i) => <td key={i} className="py-2.5 px-3.5 text-right font-mono tabular-nums font-bold">{c.netCashFlow}</td>)}
                     </tr>
                   </tbody>
@@ -1164,8 +1172,17 @@ export default function CompanyPage() {
         </div>
 
         {loadingNews ? (
-          <div className="py-8 text-center text-xs text-slate-400 font-medium">
-            Fetching verified corporate reports for {data.symbol}...
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 relative overflow-hidden">
+                <div className="flex justify-between items-center">
+                  <div className="h-3.5 w-20 bg-slate-200 rounded animate-shimmer"></div>
+                  <div className="h-3 w-16 bg-slate-100 rounded animate-pulse"></div>
+                </div>
+                <div className="h-4 w-5/6 bg-slate-200 rounded animate-shimmer"></div>
+                <div className="h-3 w-full bg-slate-100 rounded animate-pulse"></div>
+              </div>
+            ))}
           </div>
         ) : news.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-400 font-medium">
