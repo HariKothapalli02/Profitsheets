@@ -57,11 +57,6 @@ export default function HomePage() {
   const [popularTab, setPopularTab] = useState('ALL'); // 'ALL' | 'GAINERS' | 'LOSERS' | 'VOLUME' | 'BLUECHIPS'
   const [stockViewMode, setStockViewMode] = useState('GRID'); // 'GRID' | 'LIST'
 
-  // Live BSE Announcements Feed
-  const [announcements, setAnnouncements] = useState([]);
-  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
-  const [announcementFilter, setAnnouncementFilter] = useState('ALL'); // 'ALL' | 'RESULTS' | 'BOARD' | 'CONCALL'
-
   // Kite callback notice
   const [kiteStatusNotice, setKiteStatusNotice] = useState(null);
   const searchRef = useRef(null);
@@ -148,54 +143,6 @@ export default function HomePage() {
       console.warn('Failed to load popular quotes:', err.message);
     } finally {
       setPopularLoading(false);
-    }
-  };
-
-  // Fetch Live BSE Corporate Announcements (Market-wide across top Indian equities)
-  useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        const res = await axios.get('/api/stocks/bse-announcements?symbol=ALL');
-        if (res.data?.announcements && Array.isArray(res.data.announcements)) {
-          setAnnouncements(res.data.announcements);
-        }
-      } catch (err) {
-        console.warn('Failed to load BSE announcements:', err.message);
-      } finally {
-        setAnnouncementsLoading(false);
-      }
-    };
-    fetchAnnouncements();
-  }, []);
-
-  const filteredAnnouncements = useMemo(() => {
-    if (!announcements || announcements.length === 0) return [];
-    if (announcementFilter === 'ALL') return announcements;
-    if (announcementFilter === 'RESULTS') {
-      return announcements.filter(a => a.type === 'Financial Results' || a.category?.toLowerCase().includes('result') || a.headline?.toLowerCase().includes('result'));
-    }
-    if (announcementFilter === 'BOARD') {
-      return announcements.filter(a => a.type === 'Board Meeting' || a.category?.toLowerCase().includes('board') || a.headline?.toLowerCase().includes('board'));
-    }
-    if (announcementFilter === 'CONCALL') {
-      return announcements.filter(a => a.type === 'Concall Transcript' || a.type === 'Investor Presentation' || a.headline?.toLowerCase().includes('presentation') || a.headline?.toLowerCase().includes('transcript') || a.headline?.toLowerCase().includes('concall'));
-    }
-    return announcements;
-  }, [announcements, announcementFilter]);
-
-  const getAnnouncementBadgeStyle = (type) => {
-    switch (type) {
-      case 'Financial Results':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
-      case 'Board Meeting':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200/80';
-      case 'Concall Transcript':
-      case 'Investor Presentation':
-        return 'bg-sky-50 text-sky-700 border-sky-200/80';
-      case 'Corporate Action':
-        return 'bg-amber-50 text-amber-700 border-amber-200/80';
-      default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -1332,136 +1279,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. LIVE BSE CORPORATE ANNOUNCEMENTS & CONCALL RADAR */}
-      <section className="reveal-init bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 border-b border-slate-100 gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <h2 className="text-sm sm:text-base font-semibold text-slate-900 flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-emerald-600" />
-                <span>Live BSE corporate filings & concalls</span>
-              </h2>
-            </div>
-            <p className="text-[11px] sm:text-xs text-slate-500">
-              Official regulatory disclosures, board meeting outcomes, and investor presentations across market leaders
-            </p>
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 pt-1 sm:pt-0">
-            {[
-              { id: 'ALL', label: 'All Filings' },
-              { id: 'RESULTS', label: 'Financial Results' },
-              { id: 'BOARD', label: 'Board Meets' },
-              { id: 'CONCALL', label: 'Concalls & Ppts' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setAnnouncementFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
-                  announcementFilter === tab.id
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Announcements Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
-          {announcementsLoading ? (
-            [1, 2, 3, 4, 5, 6].map(n => (
-              <div key={n} className="h-28 rounded-xl bg-slate-50/70 border border-slate-200/60 p-4 flex flex-col justify-between animate-pulse">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-5 bg-slate-200 rounded" />
-                    <div className="w-32 h-4 bg-slate-200 rounded" />
-                  </div>
-                  <div className="w-20 h-4 bg-slate-200 rounded" />
-                </div>
-                <div className="w-4/5 h-4 bg-slate-200 rounded my-2" />
-                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                  <div className="w-24 h-3 bg-slate-200 rounded" />
-                  <div className="w-16 h-6 bg-slate-200 rounded" />
-                </div>
-              </div>
-            ))
-          ) : (filteredAnnouncements.length > 0 ? filteredAnnouncements : announcements).slice(0, 8).map((ann, i) => (
-            <div 
-              key={ann.id || i}
-              className="p-3.5 sm:p-4 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group"
-            >
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <button
-                      onClick={() => handleSelectCompany(ann.symbol || 'RELIANCE')}
-                      className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold hover:bg-emerald-600 transition-colors shrink-0 cursor-pointer shadow-2xs"
-                      title={`View ${ann.symbol || 'stock'} analysis`}
-                    >
-                      {ann.symbol || 'BSE'}
-                    </button>
-                    <span 
-                      className="text-xs font-semibold text-slate-900 truncate max-w-[160px] sm:max-w-[220px]" 
-                      title={ann.companyName}
-                    >
-                      {ann.companyName}
-                    </span>
-                  </div>
-
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border shrink-0 ${getAnnouncementBadgeStyle(ann.type)}`}>
-                    {ann.type || 'Filing'}
-                  </span>
-                </div>
-
-                <h4 
-                  className="text-xs text-slate-700 leading-relaxed line-clamp-2 group-hover:text-slate-900 transition-colors font-normal"
-                  title={ann.headline}
-                >
-                  {ann.headline}
-                </h4>
-              </div>
-
-              <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400">
-                  <Clock className="w-3 h-3 text-slate-400" />
-                  <span>{ann.date}</span>
-                </div>
-
-                {ann.hasPdf && ann.pdfUrl ? (
-                  <a
-                    href={ann.pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-200 hover:border-emerald-600 text-[11px] font-mono font-medium transition-all cursor-pointer shadow-2xs hover:shadow-xs shrink-0"
-                    title={`Open official BSE filing PDF for ${ann.companyName}`}
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>PDF ↗</span>
-                  </a>
-                ) : (
-                  <button
-                    onClick={() => handleSelectCompany(ann.symbol || 'RELIANCE')}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-mono font-medium transition-colors cursor-pointer shrink-0"
-                  >
-                    <span>View Stock</span>
-                    <ChevronRight className="w-3 h-3 text-slate-400" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 8. PLATFORM CAPABILITY HIGHLIGHTS */}
+      {/* 7. PLATFORM CAPABILITY HIGHLIGHTS */}
       <section className="reveal-init bg-slate-900 text-white rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="space-y-1">

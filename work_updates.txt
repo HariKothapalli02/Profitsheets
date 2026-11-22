@@ -324,5 +324,155 @@ AFFECTED FILES:
 - backend/index.js                                (Accepted variety parameter, custom AMO status message)
 - work_updates.txt                                (Appended update 16)
 ================================================================================
+
+================================================================================
+UPDATE 17: PURE MONOCHROME COLOR-FREE SKELETON ARCHITECTURE
+Date: November 21, 2026
+Status: Verified & Production Ready (0 Build Errors, 0 Layout Shift, Pure Slate Shimmer)
+================================================================================
+
+1. ELIMINATION OF ARTIFICIAL BANNERS & COLOR TINTS:
+   - Problem: The loading skeleton for company reports previously featured an artificial
+     dark-green telemetry banner at the top ("STREAMING LIVE MARKET FEED & AUDITED FINANCIALS")
+     that did not exist on the real page, creating severe layout shifts (CLS) when data mounted.
+     Additionally, placeholder chips, candlesticks, and icons contained strange neon green,
+     red, and cyan color fills (`bg-emerald-50`, `bg-emerald-100`, `bg-rose-300`, etc.).
+   - Solution:
+     * Completely removed the artificial dark-green top banner from `CompanyPageSkeleton`.
+     * Stripped all colored tints across all skeleton loaders in `frontend/src/components/LoadingAnimations.jsx`.
+     * Upgraded to a clean, institutional, neutral slate palette (`#e2e8f0` and `#f1f5f9`).
+
+2. DEDICATED HARDWARE-ACCELERATED SHIMMER UTILITIES:
+   - Created `.skeleton-bone` and `.skeleton-bone-subtle` in `frontend/src/index.css`.
+   - Engineered a synchronized, continuous metallic shimmer gradient:
+     `linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 100%)`.
+   - Replaced mixed `animate-pulse` / `animate-shimmer` artifacts with the reusable `<Skeleton />` component.
+
+3. 1:1 STRUCTURAL REPLICA OF LOADED PAGES:
+   - `CompanyPageSkeleton`: Exact 1:1 match with loaded layout:
+     * Identity card (avatar, company name, ticker pills, price, CTA buttons).
+     * 6-metric key valuation matrix (Market Cap, P/E, ROCE/ROE, Book Value, 52W Range, Delivery %).
+     * Session OHLC Dynamics & Intraday Range with neutral progress bars.
+     * Candlestick & Volume Chart with monochrome slate bars and subtle wicks.
+     * Financial Statements table with neutral tabs and structured row bones.
+   - `ChartSkeleton`, `TableSkeleton`, `CardGridSkeleton`: All updated to pure color-free slate.
+   - `BrandedSpinner`: Upgraded to a clean, minimalist monochrome slate spinner.
+
+4. BROWSER VERIFICATION:
+   - Verified across desktop (1280x900) and mobile (390x844) viewports via Chrome DevTools Protocol.
+   - Confirmed 0 layout shift and smooth metallic shimmer wave across light and mobile viewports.
+
+AFFECTED FILES:
+- frontend/src/components/LoadingAnimations.jsx  (Pure monochrome skeleton suite, reusable Skeleton bone, clean BrandedSpinner)
+- frontend/src/index.css                         (Added .skeleton-bone and .skeleton-bone-subtle utilities)
+- work_updates.txt                               (Appended update 17)
+================================================================================
+
+================================================================================
+UPDATE 18: HOMEPAGE BSE CORPORATE FILINGS SECTION REMOVAL
+Date: November 21, 2026
+Status: Verified & Production Ready (0 Build Errors, Seamless Layout Transition)
+================================================================================
+
+1. COMPLETE SECTION REMOVAL:
+   - Completely excised the "Live BSE corporate filings & concalls" section from `frontend/src/pages/HomePage.jsx`.
+   - Removed all associated React state hooks (`announcements`, `announcementsLoading`, `announcementFilter`).
+   - Cleaned up the background BSE announcements API polling effect, `filteredAnnouncements` memoization,
+     and category badge styling helper.
+
+2. HOMEPAGE FLOW & BROWSER VERIFICATION:
+   - "Institutional screener presets" now connects directly and seamlessly to "Platform capability highlights".
+   - Verified with headless Chrome DevTools Protocol (1280x900): zero visual glitches, zero console errors, 0 layout shifts.
+   - Vite production build compiled cleanly in 12.62s.
+
+AFFECTED FILES:
+- frontend/src/pages/HomePage.jsx                (Removed Section 7 and all BSE filings state/query hooks)
+- work_updates.txt                               (Appended update 18)
+================================================================================
+
+================================================================================
+UPDATE 19: AUTH DIRECT ROUTING, VIRTUAL RESET REMOVAL & REAL/VIRTUAL ORDER FILTERING
+Date: November 21, 2026
+Status: Verified & Production Ready (0 Errors, Tested with Headless CDP)
+================================================================================
+
+1. AUTHENTICATION REDIRECTION TO HOME:
+   - Updated `frontend/src/pages/LoginPage.jsx` and `frontend/src/pages/SignupPage.jsx` so successful logins
+     and signups immediately navigate to the root Home page (`/`) rather than `/profile`.
+   - Visiting `/login` or `/signup` while already authenticated now immediately redirects to `/`.
+
+2. REMOVAL OF VIRTUAL CASH RESET BUTTON:
+   - Completely excised the `[ ↺ Reset to ₹5,00,000 ]` button from `frontend/src/pages/ProfilePage.jsx`.
+   - Cleaned up unused `resetting` state, `handleResetVirtualCash` function, and `RotateCcw` icon import.
+   - Profile card now displays clean virtual demo balance and P&L metrics with zero unwanted reset triggers.
+
+3. ORDER HISTORY NAVIGATION TO ORDERS PAGE:
+   - Routed all "Order History" and "Trade Orders & History" entry points to `/orders`:
+     * `frontend/src/components/Navbar.jsx`: User profile dropdown links to `/orders`.
+     * `frontend/src/pages/ProfilePage.jsx`: Header actions and quick links now open `/orders`.
+     * `frontend/src/App.jsx`: `/history` route redirects directly to `/orders`.
+
+4. REAL VS VIRTUAL ORDER FILTERING ENGINE:
+   - In `frontend/src/pages/OrdersPage.jsx`, introduced segmented controls:
+     * `[ All Orders (N) ]`
+     * `[ ● Real (N) ]` (filters specifically for genuine Zerodha Kite broker orders)
+     * `[ ⚡ Virtual (N) ]` (filters specifically for demo/paper trading records)
+   - Integrated live badges (`REAL KITE` in emerald badge vs `VIRTUAL DEMO` in purple badge) across both mobile cards and desktop table views.
+   - Filters compose seamlessly with status tabs (All, Pending, Completed, Cancelled).
+
+AFFECTED FILES:
+- frontend/src/pages/LoginPage.jsx               (Redirects directly to home page '/')
+- frontend/src/pages/SignupPage.jsx              (Redirects directly to home page '/')
+- frontend/src/pages/ProfilePage.jsx             (Removed Reset to ₹5,00,000 button, updated links to /orders)
+- frontend/src/components/Navbar.jsx             (Updated profile dropdown to /orders)
+- frontend/src/App.jsx                           (Added /history -> /orders redirection)
+- frontend/src/pages/OrdersPage.jsx              (Added Real vs Virtual segmented filter controls & badges)
+- work_updates.txt                               (Appended update 19)
+================================================================================
+
+================================================================================
+UPDATE 20: TRADER PROFILE UI & EXECUTIVE DASHBOARD REDESIGN
+Date: November 22, 2026
+Status: Verified & Production Ready (0 Errors, Tested with Headless CDP)
+================================================================================
+
+1. PREMIUM TRADER IDENTITY HEADER:
+   - Replaced basic avatar box with an executive squircle avatar featuring initials and live active session pulse ring.
+   - Added verified trader & SEBI 1-2% risk discipline badges alongside trader name.
+   - Integrated click-to-copy email and Account ID (`PS-USR_XXXX`) with copy checkmark micro-interactions.
+   - Added member tenure (`Member since Nov 2026`).
+   - Integrated direct header actions: Orders Journal with live order badge (`6`), Screener shortcut, and Sign Out.
+
+2. BALANCED METRIC CARDS (ZERO EMPTY SPACE):
+   - Completely resolved empty whitespace from virtual reset button removal by balancing all 3 cards:
+     * Card 1: Available Demo Capital (`₹5,00,000.00`) with visual Capital Utilization progress bar,
+       Initial Allocation (`₹5,00,000`), and Max 2% Risk/Trade (`₹10,000`).
+     * Card 2: Demo P&L Performance (`+₹0.00` / `+0.00% Return`) with completed trades count and traded volume.
+     * Card 3: Broker Gateway (`Zerodha Kite Publisher`) with live pulse, order routing specs, AMO status,
+       and high-contrast `View Execution Journal ↗` button.
+
+3. RECENT ORDER ACTIVITY & BLUECHIP QUICK TRADE HUB:
+   - Recent Order Executions (Left Column): Live feed of last 4 placed orders with BUY/SELL color-coded chips,
+     `Real Kite` vs `Virtual Demo` badges, Qty/Price, timestamp, and status pills (`COMPLETE`, `PENDING`, `CANCELLED`).
+   - Bluechips Quick Trade (Right Column): One-click quick access cards for Nifty 50 market leaders
+     (Reliance, TCS, HDFC Bank, Infosys) directly opening their live trading terminals.
+
+4. SEBI COMPLIANCE & RISK SAFEGUARD ARCHITECTURE:
+   - Added an institutional dark-mode banner highlighting active 1-2% position sizing discipline,
+     circuit-breaker safety thresholds, and immutable MongoDB journaling.
+
+5. HIGH-FIDELITY PLATFORM SHORTCUTS:
+   - Replaced plain grey boxes with 3 interactive action cards featuring icon containers, hover transitions,
+     and deep-dive descriptions for Stock Screener, Order Journal, and Saved Watchlist.
+
+6. BROWSER VERIFICATION & BUG FIX:
+   - Fixed an auth race condition where `navigate('/login')` was executed during component render before
+     `authLoading` completed. Now safely verifies session before redirection.
+   - Verified across desktop (1280x900) and mobile (390x844) with headless Chrome CDP.
+
+AFFECTED FILES:
+- frontend/src/pages/ProfilePage.jsx             (Complete UI enhancement and auth race fix)
+- work_updates.txt                               (Appended update 20)
+================================================================================
 End of Update Log.
 

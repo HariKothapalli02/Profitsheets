@@ -25,6 +25,7 @@ export default function OrdersPage({ onGoToMarkets }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterTab, setFilterTab] = useState('ALL'); // 'ALL' | 'COMPLETE' | 'PENDING' | 'CANCELLED'
+  const [modeFilter, setModeFilter] = useState('ALL'); // 'ALL' | 'REAL' | 'VIRTUAL'
 
   // Modal / prompt for confirming execution of a pending order
   const [selectedOrderToConfirm, setSelectedOrderToConfirm] = useState(null);
@@ -167,11 +168,28 @@ export default function OrdersPage({ onGoToMarkets }) {
     );
   }
 
-  const completedOrders = orders.filter(o => o.status === 'COMPLETE' || o.status === 'EXECUTED');
-  const pendingOrders = orders.filter(o => o.status === 'PENDING' || o.status === 'OPEN');
-  const cancelledOrders = orders.filter(o => o.status === 'CANCELLED' || o.status === 'REJECTED');
+  const isOrderVirtual = (o) => Boolean(
+    o.isDemo || 
+    (o.broker && (o.broker.toLowerCase().includes('demo') || o.broker.toLowerCase().includes('virtual')))
+  );
 
-  const filteredOrders = orders.filter(order => {
+  const isOrderReal = (o) => !isOrderVirtual(o);
+
+  const realOrdersCount = orders.filter(isOrderReal).length;
+  const virtualOrdersCount = orders.filter(isOrderVirtual).length;
+
+  // Filter orders by mode (Real vs Virtual) first
+  const ordersInSelectedMode = orders.filter(order => {
+    if (modeFilter === 'REAL') return isOrderReal(order);
+    if (modeFilter === 'VIRTUAL') return isOrderVirtual(order);
+    return true;
+  });
+
+  const completedOrders = ordersInSelectedMode.filter(o => o.status === 'COMPLETE' || o.status === 'EXECUTED');
+  const pendingOrders = ordersInSelectedMode.filter(o => o.status === 'PENDING' || o.status === 'OPEN');
+  const cancelledOrders = ordersInSelectedMode.filter(o => o.status === 'CANCELLED' || o.status === 'REJECTED');
+
+  const filteredOrders = ordersInSelectedMode.filter(order => {
     if (filterTab === 'COMPLETE') return order.status === 'COMPLETE' || order.status === 'EXECUTED';
     if (filterTab === 'PENDING') return order.status === 'PENDING' || order.status === 'OPEN';
     if (filterTab === 'CANCELLED') return order.status === 'CANCELLED' || order.status === 'REJECTED';
@@ -278,49 +296,88 @@ export default function OrdersPage({ onGoToMarkets }) {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-slate-200/80 pb-2 overflow-x-auto no-scrollbar whitespace-nowrap">
-        <button
-          onClick={() => setFilterTab('ALL')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            filterTab === 'ALL' 
-              ? 'bg-slate-900 text-white shadow-xs' 
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          All Orders ({orders.length})
-        </button>
-        <button
-          onClick={() => setFilterTab('PENDING')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-            filterTab === 'PENDING' 
-              ? 'bg-amber-600 text-white shadow-xs' 
-              : 'text-amber-700 bg-amber-50 hover:bg-amber-100/80 border border-amber-200/60'
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          <span>Pending Kite ({pendingOrders.length})</span>
-        </button>
-        <button
-          onClick={() => setFilterTab('COMPLETE')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            filterTab === 'COMPLETE' 
-              ? 'bg-emerald-600 text-white shadow-xs' 
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          Completed ({completedOrders.length})
-        </button>
-        <button
-          onClick={() => setFilterTab('CANCELLED')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            filterTab === 'CANCELLED' 
-              ? 'bg-slate-600 text-white shadow-xs' 
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          Cancelled / Rejected ({cancelledOrders.length})
-        </button>
+      {/* Execution Mode (Real vs Virtual) & Status Filter Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+        {/* Real vs Virtual Segmented Control */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl shrink-0 self-start">
+          <button
+            onClick={() => setModeFilter('ALL')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              modeFilter === 'ALL'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            All Orders ({orders.length})
+          </button>
+          <button
+            onClick={() => setModeFilter('REAL')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              modeFilter === 'REAL'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>Real ({realOrdersCount})</span>
+          </button>
+          <button
+            onClick={() => setModeFilter('VIRTUAL')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              modeFilter === 'VIRTUAL'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5 fill-white" />
+            <span>Virtual ({virtualOrdersCount})</span>
+          </button>
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
+          <button
+            onClick={() => setFilterTab('ALL')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              filterTab === 'ALL' 
+                ? 'bg-slate-800 text-white shadow-xs' 
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+            }`}
+          >
+            All Statuses
+          </button>
+          <button
+            onClick={() => setFilterTab('PENDING')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              filterTab === 'PENDING' 
+                ? 'bg-amber-600 text-white shadow-xs' 
+                : 'text-amber-700 bg-amber-50 hover:bg-amber-100/80 border border-amber-200/60'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Pending ({pendingOrders.length})</span>
+          </button>
+          <button
+            onClick={() => setFilterTab('COMPLETE')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              filterTab === 'COMPLETE' 
+                ? 'bg-emerald-600 text-white shadow-xs' 
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+            }`}
+          >
+            Completed ({completedOrders.length})
+          </button>
+          <button
+            onClick={() => setFilterTab('CANCELLED')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              filterTab === 'CANCELLED' 
+                ? 'bg-slate-600 text-white shadow-xs' 
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+            }`}
+          >
+            Cancelled ({cancelledOrders.length})
+          </button>
+        </div>
       </div>
 
       {/* Orders Table */}
@@ -373,8 +430,16 @@ export default function OrdersPage({ onGoToMarkets }) {
                             {order.action} {order.product || 'CNC'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                          {order.broker || 'Zerodha Kite'} • {order.exchange || 'NSE'}
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono mt-0.5 flex-wrap">
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                            isOrderVirtual(order)
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                              : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          }`}>
+                            {isOrderVirtual(order) ? 'Virtual Demo' : 'Real Kite'}
+                          </span>
+                          <span className="text-slate-300">•</span>
+                          <span className="text-slate-400">{order.exchange || 'NSE'}</span>
                         </div>
                       </div>
 
@@ -485,12 +550,20 @@ export default function OrdersPage({ onGoToMarkets }) {
                       <td className="py-4 px-6">
                         <Link 
                           to={`/company/${order.symbol}`}
-                          className="font-black text-slate-900 hover:text-violet-600 font-mono transition-colors"
+                          className="font-black text-slate-900 hover:text-emerald-700 font-mono transition-colors text-sm"
                         >
                           {order.symbol}
                         </Link>
-                        <div className="text-[10px] text-slate-400 font-semibold">
-                          {order.broker || 'Zerodha Kite'} • {order.exchange || 'NSE'}
+                        <div className="flex items-center gap-1.5 text-[10px] font-semibold mt-0.5">
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase font-mono ${
+                            isOrderVirtual(order)
+                              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                              : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          }`}>
+                            {isOrderVirtual(order) ? 'Virtual Demo' : 'Real Kite'}
+                          </span>
+                          <span className="text-slate-300">•</span>
+                          <span className="text-slate-400 font-mono">{order.exchange || 'NSE'}</span>
                         </div>
                       </td>
                       <td className="py-4 px-6">

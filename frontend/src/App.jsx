@@ -42,7 +42,7 @@ export default function App() {
 
           {/* 3. User Account & Virtual Demo Cash Management */}
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/history" element={<Navigate to="/orders" replace />} />
           <Route path="/watchlist" element={<WatchlistPage />} />
 
           {/* 4. Screener Company Report with Live Ticks & Buy/Sell Terminal */}

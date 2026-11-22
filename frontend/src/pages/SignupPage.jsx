@@ -26,10 +26,10 @@ export default function SignupPage() {
 
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const redirectTarget = searchParams.get('redirect') || '/profile';
+  const redirectTarget = '/';
 
   if (user) {
-    navigate(redirectTarget);
+    navigate('/');
     return null;
   }
 
@@ -46,7 +46,7 @@ export default function SignupPage() {
 
     try {
       await register(name, email, password);
-      navigate(redirectTarget);
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Account creation failed. Please try a different email.');
     } finally {

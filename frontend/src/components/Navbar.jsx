@@ -265,7 +265,7 @@ export default function Navbar() {
                     </Link>
 
                     <Link
-                      to="/history"
+                      to="/orders"
                       onClick={() => setProfileOpen(false)}
                       className="block px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
                     >

@@ -25,10 +25,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   const searchParams = new URLSearchParams(location.search);
-  const redirectTarget = searchParams.get('redirect') || '/profile';
+  const redirectTarget = '/';
 
   if (user) {
-    navigate(redirectTarget);
+    navigate('/');
     return null;
   }
 
@@ -39,7 +39,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      navigate(redirectTarget);
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password. Please try again.');
     } finally {

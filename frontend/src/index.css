@@ -102,11 +102,55 @@
   background-image: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.5) 50%,
     rgba(255, 255, 255, 0) 100%
   );
-  animation: shimmer 1.8s ease-in-out infinite;
+  animation: shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   content: '';
+  will-change: transform;
+}
+
+/* Color-Free Neutral Skeleton Bones */
+.skeleton-bone {
+  position: relative;
+  overflow: hidden;
+  background-color: #e2e8f0; /* slate-200 */
+}
+
+.skeleton-bone::after {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  content: '';
+  will-change: transform;
+}
+
+.skeleton-bone-subtle {
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+.skeleton-bone-subtle::after {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  content: '';
+  will-change: transform;
 }
 
 .animate-radar {
