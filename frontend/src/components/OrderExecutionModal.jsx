@@ -63,10 +63,13 @@ export default function OrderExecutionModal({
   // 'BUY' | 'SELL'
   const [action, setAction] = useState(initialAction);
 
-  // Sync action with initialAction whenever modal opens
+  // Sync action with initialAction and default executionMode to Zerodha Kite whenever modal opens
   useEffect(() => {
     if (initialAction) {
       setAction(initialAction);
+    }
+    if (isOpen) {
+      setExecutionMode('ZERODHA');
     }
   }, [initialAction, isOpen]);
 
@@ -96,8 +99,8 @@ export default function OrderExecutionModal({
   const currentPrice = Number(stock.currentPrice || stock.price || 100);
   const [customPrice, setCustomPrice] = useState(currentPrice);
 
-  // 'DEMO' | 'ZERODHA'
-  const [executionMode, setExecutionMode] = useState('DEMO');
+  // 'ZERODHA' | 'DEMO' - Defaults to Zerodha Kite as requested
+  const [executionMode, setExecutionMode] = useState('ZERODHA');
 
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -381,38 +384,45 @@ export default function OrderExecutionModal({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen min-h-screen z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen min-h-screen z-[99999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto animate-sheet-backdrop"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col transform transition-all my-auto"
+        className="w-full sm:max-w-[440px] bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden border-t sm:border border-slate-200/90 flex flex-col transform transition-all animate-sheet-up max-h-[90vh] sm:max-h-[85vh] my-0 sm:my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Bar */}
-        <div className={`${trackedOrder ? 'bg-amber-600' : themeBgColor} text-white px-5 py-3.5 flex items-center justify-between rounded-t-2xl transition-colors duration-200 select-none`}>
-          <div className="flex items-center space-x-2.5 overflow-hidden">
-            <span className="px-2 py-0.5 rounded text-[11px] font-black tracking-wider bg-black/25 uppercase font-mono">
-              {action} ORDER
-            </span>
-            <span className="font-bold text-sm truncate font-mono tracking-wide">
-              {stock.symbol}
-            </span>
-            <span className="text-xs text-white/85 truncate font-normal hidden sm:inline">
-              ({stock.name || stock.companyName || stock.symbol})
-            </span>
+        <div className={`${trackedOrder ? 'bg-amber-600' : themeBgColor} text-white px-5 pt-3 pb-3.5 sm:py-3.5 flex flex-col justify-center rounded-t-3xl sm:rounded-t-2xl transition-colors duration-200 select-none`}>
+          {/* Mobile Sheet Handle Indicator */}
+          <div className="w-full flex items-center justify-center pb-2 sm:hidden cursor-pointer" onClick={onClose}>
+            <div className="w-10 h-1 bg-white/35 rounded-full" />
           </div>
 
-          <button 
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2.5 overflow-hidden">
+              <span className="px-2 py-0.5 rounded text-[11px] font-black tracking-wider bg-black/25 uppercase font-mono">
+                {action} ORDER
+              </span>
+              <span className="font-bold text-sm truncate font-mono tracking-wide">
+                {stock.symbol}
+              </span>
+              <span className="text-xs text-white/85 truncate font-normal hidden sm:inline">
+                ({stock.name || stock.companyName || stock.symbol})
+              </span>
+            </div>
+
+            <button 
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div className="p-4 sm:p-5 space-y-4 max-h-[78vh] sm:max-h-[85vh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-5">
 
           {/* ============================================================== */}
           {/* VIEW A: ACTIVE ORDER TRACKING & CONFIRMATION STAGE */}

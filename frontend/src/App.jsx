@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import MobileBottomNav from './components/MobileBottomNav';
 import KiteSettingsModal from './components/KiteSettingsModal';
 import ScrollToTop from './components/ScrollToTop';
 import ScrollManager from './components/ScrollManager';
@@ -30,7 +31,7 @@ export default function App() {
       <Navbar />
 
       {/* Main Screener Viewport - Expanded container for full screen utilization without awkward side gaps */}
-      <main className="flex-1 w-full max-w-[1720px] mx-auto px-2.5 sm:px-6 lg:px-8 xl:px-10 py-2.5 sm:py-5">
+      <main className="flex-1 w-full max-w-[1720px] mx-auto px-2.5 sm:px-6 lg:px-8 xl:px-10 py-2.5 sm:py-5 pb-20 md:pb-5">
         <Routes>
           {/* 1. Root Homepage */}
           <Route path="/" element={<HomePage />} />
@@ -62,6 +63,9 @@ export default function App() {
 
       {/* Screener.in Clean Minimalist Footer */}
       <Footer />
+
+      {/* Persistent Mobile Bottom Navigation Bar (Docked on Mobile View) */}
+      <MobileBottomNav />
 
       {/* Modals for Zerodha Kite Config */}
       <KiteSettingsModal />

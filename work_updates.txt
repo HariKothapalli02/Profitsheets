@@ -474,5 +474,76 @@ AFFECTED FILES:
 - frontend/src/pages/ProfilePage.jsx             (Complete UI enhancement and auth race fix)
 - work_updates.txt                               (Appended update 20)
 ================================================================================
+
+================================================================================
+UPDATE 21: DEFAULT ORDER EXECUTION CHANNEL SWITCH TO ZERODHA KITE
+Date: November 22, 2026
+Status: Verified & Production Ready (0 Errors, Tested with Headless CDP)
+================================================================================
+
+1. DEFAULT EXECUTION MODE RECONFIGURATION:
+   - Updated `frontend/src/components/OrderExecutionModal.jsx`:
+     * Initialized `executionMode` state to `'ZERODHA'` instead of `'DEMO'`.
+     * Added sync hook inside `useEffect([initialAction, isOpen])` ensuring that whenever BUY or SELL
+       action buttons are clicked anywhere in the app, the modal reliably defaults to Zerodha Kite.
+   - Preserved ability for users to manually toggle to "Demo (Virtual Cash)" if paper trading is desired.
+
+2. ORDER SUBMISSION CTAS & WORKFLOW:
+   - When opened, the modal now immediately displays:
+     * "Zerodha Kite" channel highlighted with active indicator (`bg-slate-900 text-white`).
+     * Real-time After-Market Order (AMO) detection status banner.
+     * Primary action button: `Send AMO to Zerodha Kite & Track ↗` (or `Send to Zerodha Kite & Track ↗` during live market hours).
+
+3. TESTING & VERIFICATION:
+   - Verified in headless Chrome CDP on `/company/RELIANCE`:
+     * Clicked BUY button.
+     * Modal opened with `kiteSelected: true`, `demoSelected: false`, and submit button ready to dispatch basket to Kite.
+   - Vite production build passed with 0 errors.
+
+AFFECTED FILES:
+- frontend/src/components/OrderExecutionModal.jsx (Defaults executionMode to 'ZERODHA' upon opening)
+- work_updates.txt                               (Appended update 21)
+================================================================================
+
+================================================================================
+UPDATE 22: MOBILE BOTTOM BAR NAVIGATION & BOTTOM-SHEET ORDER TERMINAL (/unslop)
+Date: November 23, 2026
+Status: Verified & Production Ready (0 Errors, Tested with Headless CDP)
+================================================================================
+
+1. MOBILE ORDER BOTTOM SHEET (ZERO-SLOP CRAFT):
+   - Refactored `frontend/src/components/OrderExecutionModal.jsx` for mobile:
+     * Transforms from a desktop floating card into a docked native bottom sheet (`rounded-t-3xl sm:rounded-2xl`).
+     * Added native pull-handle pill (`w-10 h-1 bg-white/35 rounded-full`) at the top of the header.
+     * Integrated smooth cubic-bezier slide-up animation (`animate-sheet-up`, `0.3s cubic-bezier(0.16, 1, 0.3, 1)`).
+     * Added safe-area-inset bottom padding (`pb-[max(1.5rem,env(safe-area-inset-bottom))]`) for modern iPhones/Androids.
+     * Retains centered modal presentation on desktop (`sm:items-center sm:max-w-[440px]`).
+
+2. PERSISTENT MOBILE BOTTOM NAVIGATION BAR:
+   - Built `frontend/src/components/MobileBottomNav.jsx` (`md:hidden`):
+     * Docked persistent bottom navigation with 5 key tabs: `Home`, `Screens`, `Watchlist` (with live counter badge), `Orders`, and `Profile`.
+     * Styled with frosted glass backdrop (`bg-white/95 backdrop-blur-md border-t border-slate-200/90`).
+     * Active tab indication with micro-scale (`scale-110`) and subtle active indicator dot.
+     * Tap tactile micro-interaction (`active:scale-95 transition-all`).
+
+3. CSS ANIMATIONS & VIEWPORT COORDINATION:
+   - In `frontend/src/index.css`, added keyframes: `@keyframes sheetSlideUp`, `@keyframes sheetBackdropFade`, and `@keyframes bottomNavSlideUp` with full reduced-motion accessibility support.
+   - In `frontend/src/App.jsx`, added `pb-20 md:pb-5` padding on `<main>` so content never collides with the fixed bottom bar.
+   - In `frontend/src/pages/CompanyPage.jsx`, coordinated the sticky mobile quick-trade bar (`bottom-[52px]`) cleanly above the bottom navigation bar with `pb-32` scrolling headroom.
+
+4. BROWSER VERIFICATION:
+   - Verified on mobile viewport (390x844) via Chrome DevTools Protocol:
+     * Captured `mobile_bottom_nav_home.png` (Home screen with bottom navigation).
+     * Captured `mobile_bottom_nav_company.png` (Company report with two-tier quick-trade dock).
+     * Captured `mobile_order_bottom_sheet.png` (Buy order bottom sheet sliding up smoothly).
+
+AFFECTED FILES:
+- frontend/src/components/MobileBottomNav.jsx     (New native mobile bottom navigation bar)
+- frontend/src/components/OrderExecutionModal.jsx (Mobile bottom sheet redesign with handle pill)
+- frontend/src/index.css                         (Added sheetSlideUp and bottomNavSlideUp keyframes)
+- frontend/src/App.jsx                           (Mounted MobileBottomNav with responsive main padding)
+- frontend/src/pages/CompanyPage.jsx             (Adjusted mobile trade bar offset)
+- work_updates.txt                               (Appended update 22)
+================================================================================
 End of Update Log.
 

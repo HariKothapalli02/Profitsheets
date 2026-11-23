@@ -203,7 +203,7 @@ export default function CompanyPage() {
   const isUSD = currencySymbol === '$';
 
   return (
-    <div className="space-y-4 w-full max-w-[1720px] mx-auto pb-24 md:pb-16 font-sans">
+    <div className="space-y-4 w-full max-w-[1720px] mx-auto pb-32 md:pb-16 font-sans">
       
       {/* 1. TOP HEADER & LIVE EXCHANGE TICK CARD */}
       <div className="reveal-init bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5 sm:space-y-5">
@@ -1305,8 +1305,8 @@ export default function CompanyPage() {
         </div>
       )}
 
-      {/* Mobile Sticky Quick-Trade Bottom Bar (Always Accessible on Mobile) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg">
+      {/* Mobile Sticky Quick-Trade Bottom Bar (Floats above mobile bottom nav) */}
+      <div className="md:hidden fixed bottom-[52px] left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 py-2 flex items-center justify-between gap-3 shadow-md">
         <div className="min-w-0">
           <div className="flex items-baseline gap-1.5 font-mono">
             <span className="text-base font-black text-slate-900 tabular-nums">

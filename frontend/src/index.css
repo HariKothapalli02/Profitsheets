@@ -242,6 +242,49 @@ html {
   animation: priceDownPulse 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Bottom Sheet / Mobile Drawer Slide-Up Animation (Unslop Standard) */
+@keyframes sheetSlideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.92;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheetBackdropFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes bottomNavSlideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-sheet-up {
+  animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-sheet-backdrop {
+  animation: sheetBackdropFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity;
+}
+
+.animate-bottom-nav {
+  animation: bottomNavSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
 /* Accessibility: Full Reduced Motion Compliance */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -257,7 +300,10 @@ html {
   .animate-shimmer,
   .animate-radar,
   .animate-glow-float,
-  .animate-pulse-glow {
+  .animate-pulse-glow,
+  .animate-sheet-up,
+  .animate-sheet-backdrop,
+  .animate-bottom-nav {
     animation: none !important;
   }
 }
