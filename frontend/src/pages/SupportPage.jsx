@@ -58,10 +58,10 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto py-8 sm:py-12 px-2 sm:px-4 space-y-12 font-sans text-slate-800">
+    <div className="w-full max-w-[1720px] mx-auto py-4 sm:py-8 space-y-8 sm:space-y-10 font-sans text-slate-800">
       
       {/* 1. HEADER */}
-      <section className="reveal-init text-center space-y-3 max-w-2xl mx-auto">
+      <section className="reveal-init text-center space-y-3 max-w-3xl mx-auto py-2 sm:py-4">
         <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium">
           <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
           <span>ProfitSheets Help & Support Desk</span>
@@ -75,7 +75,7 @@ export default function SupportPage() {
       </section>
 
       {/* 2. LIVE EXCHANGE TIMINGS & SYSTEM HEALTH */}
-      <section className="reveal-init bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs">
+      <section className="reveal-init bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center space-x-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -110,135 +110,140 @@ export default function SupportPage() {
         </div>
       </section>
 
-      {/* 3. FREQUENTLY ASKED QUESTIONS */}
-      <section className="reveal-init space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-slate-900">Frequently Asked Questions</h2>
-          <p className="text-xs text-slate-500">Answers to common inquiries regarding data sources, order dispatch, and accounts.</p>
-        </div>
-
-        <div className="space-y-2.5">
-          {faqs.map((faq, idx) => {
-            const isExpanded = expandedFaq === idx;
-            return (
-              <div 
-                key={idx}
-                className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs transition-colors"
-              >
-                <button
-                  type="button"
-                  onClick={() => setExpandedFaq(isExpanded ? -1 : idx)}
-                  className="w-full text-left p-4 flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-900 hover:text-slate-700 cursor-pointer"
-                >
-                  <span>{faq.q}</span>
-                  {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-                  )}
-                </button>
-                {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 text-xs text-slate-600 leading-relaxed border-t border-slate-50 bg-slate-50/40">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 4. DIRECT CONTACT / TICKET FORM */}
-      <section className="reveal-init bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-slate-900">Submit a Support Request</h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Have a question about a specific stock report, broker integration, or bug? Send us a message and our technical desk will review it.
-          </p>
-        </div>
-
-        {submitted ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center space-y-3">
-            <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
-            <h3 className="text-base font-bold text-slate-900">Support Ticket Created Successfully</h3>
-            <p className="text-xs text-slate-600 max-w-md mx-auto">
-              Your request has been logged under ticket reference <strong className="font-mono text-slate-900 font-bold">{ticketId}</strong>. A response will be dispatched to <strong className="text-slate-900">{formData.email}</strong> within 24 business hours.
-            </p>
-            <button
-              onClick={() => {
-                setSubmitted(false);
-                setFormData({ name: '', email: '', category: 'Zerodha Kite Gateway', message: '' });
-              }}
-              className="text-xs font-semibold text-emerald-800 hover:text-emerald-900 underline cursor-pointer"
-            >
-              Submit another request
-            </button>
+      {/* 3 & 4. 2-COLUMN DESKTOP SPLIT: FREQUENTLY ASKED QUESTIONS + DIRECT SUPPORT TICKET */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        
+        {/* Left Column: Frequently Asked Questions */}
+        <section className="reveal-init lg:col-span-7 space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-slate-900">Frequently Asked Questions</h2>
+            <p className="text-xs text-slate-500">Answers to common inquiries regarding data sources, order dispatch, and accounts.</p>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs sm:text-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="font-semibold text-slate-700 block">Your Name</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Rahul Sharma"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
-                />
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="font-semibold text-slate-700 block">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="rahul@example.com"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
-                />
-              </div>
-            </div>
+          <div className="space-y-2.5">
+            {faqs.map((faq, idx) => {
+              const isExpanded = expandedFaq === idx;
+              return (
+                <div 
+                  key={idx}
+                  className="bg-white rounded-xl border border-slate-200/90 overflow-hidden shadow-2xs transition-colors"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setExpandedFaq(isExpanded ? -1 : idx)}
+                    className="w-full text-left p-4 flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-900 hover:text-slate-700 cursor-pointer"
+                  >
+                    <span>{faq.q}</span>
+                    {isExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                    )}
+                  </button>
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-1 text-xs text-slate-600 leading-relaxed border-t border-slate-50 bg-slate-50/40">
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-            <div className="space-y-1.5">
-              <label className="font-semibold text-slate-700 block">Issue Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
+        {/* Right Column: Direct Contact / Ticket Form */}
+        <section className="reveal-init lg:col-span-5 bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-slate-900">Submit a Support Request</h2>
+            <p className="text-xs text-slate-500">
+              Have a question about a stock report, broker integration, or bug? Send us a ticket.
+            </p>
+          </div>
+
+          {submitted ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center space-y-3">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
+              <h3 className="text-base font-bold text-slate-900">Support Ticket Created Successfully</h3>
+              <p className="text-xs text-slate-600 max-w-md mx-auto">
+                Your request has been logged under ticket reference <strong className="font-mono text-slate-900 font-bold">{ticketId}</strong>. A response will be dispatched to <strong className="text-slate-900">{formData.email}</strong> within 24 business hours.
+              </p>
+              <button
+                onClick={() => {
+                  setSubmitted(false);
+                  setFormData({ name: '', email: '', category: 'Zerodha Kite Gateway', message: '' });
+                }}
+                className="text-xs font-semibold text-emerald-800 hover:text-emerald-900 underline cursor-pointer"
               >
-                <option value="Zerodha Kite Gateway">Zerodha Kite Gateway / Demat Orders</option>
-                <option value="Financial Data Discrepancy">Financial Statements / Data Discrepancy</option>
-                <option value="Virtual Demo Wallet">Virtual Demo Paper Trading Account</option>
-                <option value="Feature Request">Feature Request / Stock Addition</option>
-                <option value="Other">Other Technical Inquiry</option>
-              </select>
+                Submit another request
+              </button>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs sm:text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-slate-700 block text-xs">Your Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="font-semibold text-slate-700 block">Message Details</label>
-              <textarea
-                required
-                rows={4}
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                placeholder="Describe the issue or feedback in detail..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-slate-700 block text-xs">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="rahul@example.com"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
+                  />
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-xs sm:text-sm hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
-            >
-              <Send className="w-3.5 h-3.5 mr-2" />
-              Submit Ticket
-            </button>
-          </form>
-        )}
-      </section>
+              <div className="space-y-1.5">
+                <label className="font-semibold text-slate-700 block text-xs">Issue Category</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
+                >
+                  <option value="Zerodha Kite Gateway">Zerodha Kite Gateway / Demat Orders</option>
+                  <option value="Financial Data Discrepancy">Financial Statements / Data Discrepancy</option>
+                  <option value="Virtual Demo Paper Trading Account">Virtual Demo Paper Trading Account</option>
+                  <option value="Feature Request">Feature Request / Stock Addition</option>
+                  <option value="Other">Other Technical Inquiry</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-slate-700 block text-xs">Message Details</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  placeholder="Describe the issue or feedback in detail..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5 mr-2" />
+                Submit Ticket
+              </button>
+            </form>
+          )}
+        </section>
+
+      </div>
 
       {/* 5. DIRECT EMAIL & CHANNELS */}
       <section className="bg-slate-50 rounded-2xl border border-slate-200/80 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-4">
