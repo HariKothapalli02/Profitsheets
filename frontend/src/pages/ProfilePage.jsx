@@ -131,7 +131,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="w-full max-w-[1720px] mx-auto space-y-6 sm:space-y-8 pb-16 font-sans">
+    <div className="w-full max-w-[1720px] mx-auto space-y-6 sm:space-y-8 pb-6 sm:pb-8 font-sans">
       
       {/* 1. Header Profile & Identity Hub */}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs relative overflow-hidden">

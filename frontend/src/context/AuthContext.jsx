@@ -3,9 +3,29 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+function getValidInitialToken() {
+  try {
+    const raw = localStorage.getItem('ps_token');
+    if (!raw || raw === 'undefined' || raw === 'null' || typeof raw !== 'string') {
+      if (raw === 'undefined' || raw === 'null') {
+        localStorage.removeItem('ps_token');
+      }
+      return null;
+    }
+    const trimmed = raw.trim();
+    if (trimmed.split('.').length === 3) {
+      return trimmed;
+    }
+    localStorage.removeItem('ps_token');
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('ps_token') || null);
+  const [token, setToken] = useState(getValidInitialToken);
   const [loading, setLoading] = useState(true);
 
   // Set default axios header
@@ -20,12 +40,21 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
+  // Cleanly handle expired sessions triggered by any 401/403 API response
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      logout();
+    };
+    window.addEventListener('auth_expired', handleAuthExpired);
+    return () => window.removeEventListener('auth_expired', handleAuthExpired);
+  }, []);
+
   const fetchCurrentUser = async () => {
     try {
       const res = await axios.get('/api/auth/me');
       setUser(res.data.user);
     } catch (err) {
-      console.error('Failed to restore session:', err);
+      // If server rejects token as expired or invalid, clear it gracefully
       logout();
     } finally {
       setLoading(false);

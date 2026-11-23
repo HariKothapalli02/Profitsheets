@@ -38,11 +38,11 @@ export default function WatchlistPage() {
   const loadWatchlistData = async () => {
     setLoading(true);
     try {
-      const currentList = await fetchWatchlist(token);
+      const currentList = (user && token) ? await fetchWatchlist(token) : getStoredWatchlist();
       setSymbols(currentList);
 
       if (currentList.length > 0) {
-        // Fetch batch quotes from backend
+        // Fetch batch quotes from backend (public/guest accessible)
         const res = await axios.post('/api/stocks/batch', { symbols: currentList });
         setStockDetails(res.data?.stocks || []);
       } else {
@@ -64,7 +64,7 @@ export default function WatchlistPage() {
 
     window.addEventListener('watchlist_updated', handleUpdate);
     return () => window.removeEventListener('watchlist_updated', handleUpdate);
-  }, [token]);
+  }, [user, token]);
 
   // Quick search to add to watchlist
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function WatchlistPage() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-[1720px] mx-auto pb-16 font-sans">
+    <div className="space-y-6 w-full max-w-[1720px] mx-auto pb-6 sm:pb-8 font-sans">
       
       {/* 1. Header (Unslopped, Clean Origin-UI Style) */}
       <div className="reveal-init bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">

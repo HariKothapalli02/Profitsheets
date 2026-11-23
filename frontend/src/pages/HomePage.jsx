@@ -386,7 +386,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-8 pb-16 sm:pb-20 font-sans text-slate-900">
+    <div className="space-y-4 sm:space-y-8 pb-6 sm:pb-8 font-sans text-slate-900">
       
       {/* 1. TOP MARKET PULSE & BENCHMARK INDICES BAR */}
       <section className="reveal-init bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-5 shadow-xs space-y-3">

@@ -75,7 +75,9 @@ export default function CompanyPage() {
   // Watchlist synchronization
   useEffect(() => {
     const checkStatus = async () => {
-      await fetchWatchlist(token);
+      if (user && token) {
+        await fetchWatchlist(token);
+      }
       setIsWatchlisted(isSymbolInWatchlist(currentSymbol));
     };
     checkStatus();
@@ -86,7 +88,7 @@ export default function CompanyPage() {
 
     window.addEventListener('watchlist_updated', handleWatchlistUpdated);
     return () => window.removeEventListener('watchlist_updated', handleWatchlistUpdated);
-  }, [currentSymbol, token]);
+  }, [currentSymbol, user, token]);
 
   useEffect(() => {
     fetchCompanyData();
@@ -203,7 +205,7 @@ export default function CompanyPage() {
   const isUSD = currencySymbol === '$';
 
   return (
-    <div className="space-y-4 w-full max-w-[1720px] mx-auto pb-32 md:pb-16 font-sans">
+    <div className="space-y-4 w-full max-w-[1720px] mx-auto pb-6 md:pb-8 font-sans">
       
       {/* 1. TOP HEADER & LIVE EXCHANGE TICK CARD */}
       <div className="reveal-init bg-white rounded-xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5 sm:space-y-5">
@@ -661,7 +663,7 @@ export default function CompanyPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:space-x-3 shrink-0">
+        <div className="hidden sm:flex sm:items-center sm:space-x-3 shrink-0">
           <button
             type="button"
             onClick={() => handleOpenOrder('BUY')}
@@ -1297,7 +1299,7 @@ export default function CompanyPage() {
 
       {/* Floating Origin UI Toast Feedback */}
       {toast && (
-        <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-28 sm:bottom-6 right-4 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-lg border border-slate-800 flex items-center space-x-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{toast.message}</span>
@@ -1305,8 +1307,8 @@ export default function CompanyPage() {
         </div>
       )}
 
-      {/* Mobile Sticky Quick-Trade Bottom Bar (Floats above mobile bottom nav) */}
-      <div className="md:hidden fixed bottom-[52px] left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-4 py-2 flex items-center justify-between gap-3 shadow-md">
+      {/* Mobile Sticky Quick-Trade Bar (Docked right above MobileBottomNav) */}
+      <div className="md:hidden fixed bottom-[58px] left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-b border-slate-200/90 px-3.5 py-2 flex items-center justify-between gap-3 shadow-[0_-2px_10px_rgba(0,0,0,0.04)] select-none">
         <div className="min-w-0">
           <div className="flex items-baseline gap-1.5 font-mono">
             <span className="text-base font-black text-slate-900 tabular-nums">
@@ -1316,13 +1318,13 @@ export default function CompanyPage() {
               {isPositive ? '+' : ''}{data.changePercent || '0.00'}%
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 font-mono block truncate">{data.symbol} • {data.exchange || 'NSE'}</span>
+          <span className="text-[10px] text-slate-500 font-mono block truncate">{data.symbol} • {data.exchange || 'NSE'}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => handleOpenOrder('BUY')}
-            className="px-4 py-2 rounded-lg bg-[#00965e] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-sm flex items-center gap-1 cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-[#00965e] hover:bg-[#007f50] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-xs flex items-center gap-1 cursor-pointer transition-transform"
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>BUY</span>
@@ -1330,7 +1332,7 @@ export default function CompanyPage() {
           <button
             type="button"
             onClick={() => handleOpenOrder('SELL')}
-            className="px-4 py-2 rounded-lg bg-[#df1d44] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-sm flex items-center gap-1 cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-[#df1d44] hover:bg-[#c21437] active:scale-[0.98] text-white font-bold text-xs tracking-wider shadow-xs flex items-center gap-1 cursor-pointer transition-transform"
           >
             <ArrowDownRight className="w-3.5 h-3.5" />
             <span>SELL</span>

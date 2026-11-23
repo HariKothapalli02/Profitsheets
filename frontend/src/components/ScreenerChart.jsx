@@ -250,10 +250,10 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
     
     // Dynamic responsive margins: narrower on mobile, comfortable on widescreen
     const isMobile = svgW < 640;
-    const padL = isMobile ? 38 : 52;
-    const padR = isMobile ? 50 : 68; // Space on right for price scale labels
-    const padT = 32; // Extra space on top for high annotations
-    const padB = showRSI ? 100 : 40;
+    const padL = isMobile ? 8 : 52;
+    const padR = isMobile ? 36 : 68; // Space on right for price scale labels
+    const padT = isMobile ? 22 : 32; // Space on top for high annotations
+    const padB = showRSI ? 90 : (isMobile ? 28 : 40);
     const plotW = Math.max(100, svgW - padL - padR);
     const plotH = Math.max(100, svgH - padT - padB);
 
@@ -367,10 +367,10 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
     const medianPE_Y = getY(medianPE);
 
     // 3. Volume Histogram Bars (Aligned with candles & color-coded)
-    const maxBarH = plotH * 0.28;
+    const maxBarH = plotH * (isMobile ? 0.20 : 0.26);
     const volBars = pts.map((pt) => {
-      const volH = Math.max(3, Math.min(maxBarH, (pt.vol / maxVol) * maxBarH));
-      const barW = Math.max(2, Math.min(16, stepX * 0.75));
+      const volH = Math.max(2, Math.min(maxBarH, (pt.vol / maxVol) * maxBarH));
+      const barW = Math.max(1.2, Math.min(14, stepX * 0.65));
       return {
         x: pt.x - barW / 2,
         y: padT + plotH - volH,
@@ -380,12 +380,43 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       };
     });
 
-    // 4. Candlestick Rectangles and Wicks
-    const candleBars = pts.map((pt) => {
+    // 4. Candlestick Rectangles and Wicks with Adaptive Downsampling for Clean Mobile Spacing
+    let candleSourcePts = pts;
+    if (chartType === 'candles' && stepX < 3.2 && pts.length > 35) {
+      const bucketSize = Math.ceil(3.2 / Math.max(0.5, stepX));
+      const aggregated = [];
+      for (let i = 0; i < pts.length; i += bucketSize) {
+        const slice = pts.slice(i, i + bucketSize);
+        if (slice.length === 0) continue;
+        const openPt = slice[0];
+        const closePt = slice[slice.length - 1];
+        const highVal = Math.max(...slice.map(p => p.high));
+        const lowVal = Math.min(...slice.map(p => p.low));
+        const midX = slice.reduce((sum, p) => sum + p.x, 0) / slice.length;
+
+        aggregated.push({
+          x: midX,
+          y: closePt.y,
+          yOpen: openPt.yOpen,
+          yHigh: getY(highVal),
+          yLow: getY(lowVal),
+          open: openPt.open,
+          high: highVal,
+          low: lowVal,
+          close: closePt.close,
+          isUp: closePt.close >= openPt.open,
+          stepX: stepX * bucketSize
+        });
+      }
+      candleSourcePts = aggregated;
+    }
+
+    const candleBars = candleSourcePts.map((pt) => {
       const topY = Math.min(pt.yOpen, pt.y);
       const bottomY = Math.max(pt.yOpen, pt.y);
       const bodyH = Math.max(2, bottomY - topY);
-      const barW = Math.max(3, Math.min(18, stepX * 0.7));
+      const curStepX = pt.stepX || stepX;
+      const barW = Math.max(1.8, Math.min(16, curStepX * 0.68));
 
       return {
         wickX: pt.x,
@@ -400,7 +431,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
     });
 
     // 5. Y-Axis Price Ticks
-    const tickCount = 6;
+    const tickCount = isMobile ? 5 : 6;
     const tickStep = finalSpan / (tickCount - 1);
     const yTicks = [];
     for (let i = 0; i < tickCount; i++) {
@@ -422,20 +453,19 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
     // 7. X-Axis Date Ticks with Multi-Year Date Awareness
     const xTicks = [];
-    const maxDateLabels = Math.max(3, Math.min(12, Math.floor(plotW / 120)));
+    const maxDateLabels = isMobile ? 4 : Math.max(3, Math.min(12, Math.floor(plotW / 120)));
     const dateInterval = Math.max(1, Math.floor(pts.length / maxDateLabels));
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     for (let i = 0; i < pts.length; i += dateInterval) {
       const d = new Date(pts[i].time * 1000);
       let label = '';
       if (timeframe === '3Yr') {
-        // Multi-year display: e.g. "Dec '23", "Jun '24", "Dec '24", "Jun '25", "Dec '25", "Nov '26"
         label = `${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`;
       } else if (timeframe === '1Yr') {
-        // 1-Year display showing date and year: e.g. "1 Dec '25", "1 Mar '26"
-        label = `${d.getDate()} ${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`;
+        label = isMobile
+          ? `${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`
+          : `${d.getDate()} ${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`;
       } else {
-        // 1M and 6M: e.g. "12 Oct", "26 Oct"
         label = `${d.getDate()} ${monthNames[d.getMonth()]}`;
       }
 
@@ -450,10 +480,11 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       const lastPt = pts[pts.length - 1];
       const d = new Date(lastPt.time * 1000);
       const lastLabel = (timeframe === '3Yr' || timeframe === '1Yr')
-        ? `${d.getDate()} ${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`
+        ? (isMobile ? `${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}` : `${d.getDate()} ${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(-2)}`)
         : `${d.getDate()} ${monthNames[d.getMonth()]}`;
       
-      if (xTicks.length === 0 || Math.abs(xTicks[xTicks.length - 1].x - lastPt.x) > 55) {
+      const minDistance = isMobile ? 42 : 55;
+      if (xTicks.length === 0 || Math.abs(xTicks[xTicks.length - 1].x - lastPt.x) > minDistance) {
         xTicks.push({ x: lastPt.x, label: lastLabel });
       } else if (xTicks.length > 0) {
         xTicks[xTicks.length - 1] = { x: lastPt.x, label: lastLabel };
@@ -502,6 +533,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       plotW,
       svgW,
       svgH,
+      isMobile,
       getY
     };
   }, [candles, currentPrice, metricView, company, showRSI, chartDimensions]);
@@ -519,6 +551,33 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
     setIsHovering(true);
 
     // Find closest data candle along X
+    let closestIdx = 0;
+    let minDiff = Infinity;
+    chartData.pts.forEach((pt, idx) => {
+      const diff = Math.abs(pt.x - relX);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+
+    setHoverIndex(closestIdx);
+  };
+
+  // Touch Support for fluid finger scrolling/inspection on mobile
+  const handleTouchMove = (e) => {
+    if (!svgRef.current || !chartData.pts || chartData.pts.length === 0) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    const relX = (touchX / rect.width) * chartData.svgW;
+    const relY = (touchY / rect.height) * chartData.svgH;
+
+    setMousePos({ x: relX, y: relY });
+    setIsHovering(true);
+
     let closestIdx = 0;
     let minDiff = Infinity;
     chartData.pts.forEach((pt, idx) => {
@@ -560,10 +619,10 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
     <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 shadow-sm p-3.5 sm:p-6 space-y-3 sm:space-y-4 font-sans select-none">
       
       {/* 1. TOP HEADER CONTROLS (Authentic Screener.in Layout) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-3 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 pb-2.5 sm:pb-3 border-b border-slate-100">
         
-        {/* Left: Timeframe pills + Return badge */}
-        <div className="flex items-center space-x-2 sm:space-x-2.5 overflow-x-auto no-scrollbar pb-0.5 max-w-full">
+        {/* Row 1 on mobile / Left on desktop: Timeframe pills + Return badge */}
+        <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-2.5 overflow-x-auto no-scrollbar pb-0.5 max-w-full">
           <div className="flex items-center border border-slate-200 rounded-xl p-0.5 bg-slate-50 text-xs font-semibold shrink-0 shadow-2xs">
             {timeframes.map((tf) => (
               <button
@@ -589,20 +648,20 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             <span>
               {isPositive ? '↗' : '↘'} {isPositive ? '+' : ''}{chartData.pctReturn}%
             </span>
-            <span className="text-[10px] font-normal text-slate-500">
+            <span className="hidden sm:inline text-[10px] font-normal text-slate-500">
               in {timeframe}
             </span>
           </div>
         </div>
 
-        {/* Right: Price / PE View, Chart Type, More Dropdown & Alerts */}
-        <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold shrink-0 flex-wrap">
+        {/* Row 2 on mobile / Right on desktop: Price / PE View, Chart Type, More Dropdown & Alerts */}
+        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 text-xs font-semibold shrink-0">
           
           {/* Price vs PE Ratio Tabs */}
           <div className="flex items-center border border-slate-200 rounded-xl p-0.5 bg-slate-50 shadow-2xs">
             <button
               onClick={() => setMetricView('Price')}
-              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer text-xs ${
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer text-xs ${
                 metricView === 'Price'
                   ? 'text-slate-900 font-bold bg-white shadow-2xs border border-slate-200/80'
                   : 'text-slate-600 hover:text-slate-900'
@@ -612,13 +671,14 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             </button>
             <button
               onClick={() => setMetricView('PE Ratio')}
-              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer text-xs ${
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-all cursor-pointer text-xs ${
                 metricView === 'PE Ratio'
                   ? 'text-slate-900 font-bold bg-white shadow-2xs border border-slate-200/80'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              PE Ratio
+              <span className="sm:hidden">PE</span>
+              <span className="hidden sm:inline">PE Ratio</span>
             </button>
           </div>
 
@@ -654,7 +714,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
           <div className="relative" ref={moreMenuRef}>
             <button
               onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors shadow-2xs cursor-pointer"
+              className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors shadow-2xs cursor-pointer"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
               <span>More</span>
@@ -720,58 +780,61 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             )}
           </div>
 
-          {/* Alerts Trigger Button */}
+          {/* Alerts Trigger Button (Compact icon on mobile, full on desktop) */}
           <button 
             onClick={() => alert(`Price alert watcher active for ${symbol}. You will receive a notification if price breaks 52-week high.`)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-medium bg-white transition-colors cursor-pointer shadow-2xs"
+            title="Price Alerts"
+            className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-medium bg-white transition-colors cursor-pointer shadow-2xs shrink-0"
           >
             <Bell className="w-3.5 h-3.5 text-slate-500" />
-            <span>Alerts</span>
+            <span className="hidden sm:inline">Alerts</span>
           </button>
         </div>
       </div>
 
       {/* 2. PREMIUM LIVE OHLC & INSPECTION DATA RIBBON */}
       {activePt && (
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-xs font-mono bg-slate-50/90 rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center space-x-2 sm:space-x-3.5 flex-wrap gap-y-1">
-            <span className="font-bold text-slate-900 font-sans px-2 py-0.5 rounded-md bg-white border border-slate-200/90 shadow-2xs text-[10px] sm:text-xs">
-              {activeDateStr}
-            </span>
-            <div className="flex items-center space-x-2 sm:space-x-3 text-slate-600">
+        <div className="bg-slate-50/90 rounded-xl p-2 sm:px-3.5 sm:py-2.5 border border-slate-200/80 shadow-2xs space-y-1.5 sm:space-y-0 text-xs font-mono">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-4">
+            {/* Row 1 on mobile / Left on desktop: Date + O H L C */}
+            <div className="flex items-center space-x-2 sm:space-x-3 text-slate-600 text-[11px] sm:text-xs overflow-x-auto no-scrollbar">
+              <span className="font-bold text-slate-900 font-sans px-1.5 sm:px-2 py-0.5 rounded bg-white border border-slate-200/90 shadow-2xs text-[9.5px] sm:text-xs shrink-0">
+                {activeDateStr}
+              </span>
               <span>O: <strong className="text-slate-900">{currencySymbol}{activePt.open?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
               <span>H: <strong className="text-emerald-700">{currencySymbol}{activePt.high?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
               <span>L: <strong className="text-rose-700">{currencySymbol}{activePt.low?.toFixed(2) || activePt.close.toFixed(2)}</strong></span>
               <span>C: <strong className="text-slate-900 text-xs sm:text-sm font-black">{currencySymbol}{activePt.close.toFixed(2)}</strong></span>
             </div>
-          </div>
 
-          <div className="flex items-center space-x-2.5 sm:space-x-4 flex-wrap gap-y-1 text-[10px] sm:text-xs">
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">FROM HERE:</span>
-              <span className={`font-bold px-1.5 py-0.5 rounded-md ${isFromHerePositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
-                {isFromHerePositive ? '↗ +' : '↘ '}{fromHerePct}%
-              </span>
+            {/* Row 2 on mobile / Right on desktop: Secondary Stats */}
+            <div className="flex items-center space-x-2.5 sm:space-x-4 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 text-[10px] sm:text-xs overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">FROM HERE:</span>
+                <span className={`font-bold px-1.5 py-0.2 rounded ${isFromHerePositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                  {isFromHerePositive ? '↗ +' : '↘ '}{fromHerePct}%
+                </span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">VOL:</span>
+                <strong className="text-slate-800">{formatVolume(activePt.vol)}</strong>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">DEL:</span>
+                <strong className="text-slate-800">{Math.round(40 + (activePt.vol % 30))}%</strong>
+              </div>
+              {metricView === 'PE Ratio' && (
+                <span className="text-indigo-700 font-bold shrink-0">
+                  PE: <strong>{activePt.pe}x</strong> <span className="hidden sm:inline">(Median: {chartData.medianPE}x)</span>
+                </span>
+              )}
+              {showDMA50 && activePt.dma50 && (
+                <span className="text-amber-600 font-semibold text-[10px] sm:text-[11px] hidden sm:inline shrink-0">50 DMA: {currencySymbol}{activePt.dma50}</span>
+              )}
+              {showDMA200 && activePt.dma200 && (
+                <span className="text-rose-600 font-semibold text-[10px] sm:text-[11px] hidden sm:inline shrink-0">200 DMA: {currencySymbol}{activePt.dma200}</span>
+              )}
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">VOL:</span>
-              <strong className="text-slate-800">{formatVolume(activePt.vol)}</strong>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-sans font-semibold">DEL:</span>
-              <strong className="text-slate-800">{Math.round(40 + (activePt.vol % 30))}%</strong>
-            </div>
-            {metricView === 'PE Ratio' && (
-              <span className="text-indigo-700 font-bold">
-                PE: <strong>{activePt.pe}x</strong> (Median: {chartData.medianPE}x)
-              </span>
-            )}
-            {showDMA50 && activePt.dma50 && (
-              <span className="text-amber-600 font-semibold text-[10px] sm:text-[11px]">50 DMA: {currencySymbol}{activePt.dma50}</span>
-            )}
-            {showDMA200 && activePt.dma200 && (
-              <span className="text-rose-600 font-semibold text-[10px] sm:text-[11px]">200 DMA: {currencySymbol}{activePt.dma200}</span>
-            )}
           </div>
         </div>
       )}
@@ -779,9 +842,12 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
       {/* 3. INTERACTIVE SVG CANVAS WITH CROSSHAIR & FLOATING HUD */}
       <div 
         ref={containerRef}
-        className="relative w-full h-[300px] sm:h-[400px] select-none"
+        className="relative w-full h-[320px] sm:h-[400px] select-none"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchMove}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleMouseLeave}
       >
         {loading && (
           <div className="absolute inset-0 z-20 bg-white/70 backdrop-blur-[2px] flex items-center justify-center transition-opacity rounded-xl">
@@ -826,50 +892,56 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
             />
           ))}
 
-          {/* Left Y-Axis Volume Labels & Title */}
+          {/* Left Y-Axis Volume Labels & Title (Hidden on mobile for maximum chart width) */}
           {showVolume && metricView === 'Price' && (
             <>
-              <text
-                x="14"
-                y="160"
-                transform="rotate(-90 14,160)"
-                textAnchor="middle"
-                className="text-[9px] fill-slate-400 font-sans uppercase font-bold tracking-wider"
-              >
-                Volume
-              </text>
-              {chartData.volTicks.map((vt, i) => (
-                <text
-                  key={i}
-                  x={chartData.padL - 6}
-                  y={vt.y}
-                  textAnchor="end"
-                  className="text-[10px] fill-slate-400 font-mono"
-                  dominantBaseline="middle"
-                >
-                  {vt.label}
-                </text>
-              ))}
+              {!chartData.isMobile && (
+                <>
+                  <text
+                    x="14"
+                    y="160"
+                    transform="rotate(-90 14,160)"
+                    textAnchor="middle"
+                    className="text-[9px] fill-slate-400 font-sans uppercase font-bold tracking-wider"
+                  >
+                    Volume
+                  </text>
+                  {chartData.volTicks.map((vt, i) => (
+                    <text
+                      key={i}
+                      x={chartData.padL - 6}
+                      y={vt.y}
+                      textAnchor="end"
+                      className="text-[10px] fill-slate-400 font-mono"
+                      dominantBaseline="middle"
+                    >
+                      {vt.label}
+                    </text>
+                  ))}
+                </>
+              )}
             </>
           )}
 
           {/* Right Y-Axis Price / PE Labels & Title */}
-          <text
-            x={chartData.svgW - 14}
-            y="160"
-            transform={`rotate(90, ${chartData.svgW - 14}, 160)`}
-            textAnchor="middle"
-            className="text-[9px] fill-slate-400 font-sans uppercase font-bold tracking-wider"
-          >
-            {metricView === 'PE Ratio' ? 'P/E Ratio' : `Price (${currencySymbol})`}
-          </text>
+          {!chartData.isMobile && (
+            <text
+              x={chartData.svgW - 14}
+              y="160"
+              transform={`rotate(90, ${chartData.svgW - 14}, 160)`}
+              textAnchor="middle"
+              className="text-[9px] fill-slate-400 font-sans uppercase font-bold tracking-wider"
+            >
+              {metricView === 'PE Ratio' ? 'P/E Ratio' : `Price (${currencySymbol})`}
+            </text>
+          )}
           {chartData.yTicks.map((tick, i) => (
             <text
               key={i}
-              x={chartData.svgW - chartData.padR + 8}
+              x={chartData.isMobile ? chartData.svgW - 2 : chartData.svgW - chartData.padR + 8}
               y={tick.y}
-              textAnchor="start"
-              className="text-[10px] fill-slate-500 font-mono"
+              textAnchor={chartData.isMobile ? "end" : "start"}
+              className={`${chartData.isMobile ? 'text-[8.5px]' : 'text-[10px]'} fill-slate-500 font-mono select-none tabular-nums`}
               dominantBaseline="middle"
             >
               {tick.val}
@@ -966,7 +1038,7 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 x2={cb.wickX}
                 y2={cb.wickY2}
                 stroke={cb.isUp ? '#059669' : '#dc2626'}
-                strokeWidth="1.2"
+                strokeWidth={chartData.isMobile ? "0.9" : "1.2"}
               />
               {/* Candle Body (Open to Close) */}
               <rect
@@ -976,8 +1048,8 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
                 height={cb.bodyH}
                 fill={cb.isUp ? '#10b981' : '#ef4444'}
                 stroke={cb.isUp ? '#059669' : '#dc2626'}
-                strokeWidth="0.8"
-                rx="1"
+                strokeWidth={chartData.isMobile ? "0.6" : "0.8"}
+                rx={chartData.isMobile ? "0.5" : "1"}
               />
             </g>
           ))}
@@ -985,22 +1057,22 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
           {/* Period High & Low Badges */}
           {showHighLow && metricView === 'Price' && chartData.highestPt && (
             <g>
-              <circle cx={chartData.highestPt.x} cy={chartData.highestPt.y} r="3.5" fill="#10b981" />
+              <circle cx={chartData.highestPt.x} cy={chartData.highestPt.y} r={chartData.isMobile ? 2.5 : 3.5} fill="#10b981" />
               <rect
-                x={Math.min(chartData.svgW - chartData.padR - 76, Math.max(chartData.padL, chartData.highestPt.x - 38))}
-                y={chartData.highestPt.y - 23}
-                width="76"
-                height="17"
-                rx="4"
+                x={Math.min(chartData.svgW - chartData.padR - (chartData.isMobile ? 56 : 76), Math.max(chartData.padL, chartData.highestPt.x - (chartData.isMobile ? 28 : 38)))}
+                y={chartData.highestPt.y - (chartData.isMobile ? 18 : 23)}
+                width={chartData.isMobile ? 56 : 76}
+                height={chartData.isMobile ? 14 : 17}
+                rx={chartData.isMobile ? "3" : "4"}
                 fill="#ecfdf5"
                 stroke="#10b981"
-                strokeWidth="1"
+                strokeWidth={chartData.isMobile ? "0.8" : "1"}
               />
               <text
-                x={Math.min(chartData.svgW - chartData.padR - 38, Math.max(chartData.padL + 38, chartData.highestPt.x))}
-                y={chartData.highestPt.y - 11}
+                x={Math.min(chartData.svgW - chartData.padR - (chartData.isMobile ? 28 : 38), Math.max(chartData.padL + (chartData.isMobile ? 28 : 38), chartData.highestPt.x))}
+                y={chartData.highestPt.y - (chartData.isMobile ? 8 : 11)}
                 textAnchor="middle"
-                className="text-[9.5px] font-mono font-bold fill-emerald-800"
+                className={`${chartData.isMobile ? 'text-[8px]' : 'text-[9.5px]'} font-mono font-bold fill-emerald-800`}
               >
                 ▲ H: {currencySymbol}{chartData.highestPt.high.toFixed(1)}
               </text>
@@ -1009,22 +1081,22 @@ export default function ScreenerChart({ symbol, currentPrice = 349.4, company = 
 
           {showHighLow && metricView === 'Price' && chartData.lowestPt && (
             <g>
-              <circle cx={chartData.lowestPt.x} cy={chartData.lowestPt.y} r="3.5" fill="#ef4444" />
+              <circle cx={chartData.lowestPt.x} cy={chartData.lowestPt.y} r={chartData.isMobile ? 2.5 : 3.5} fill="#ef4444" />
               <rect
-                x={Math.min(chartData.svgW - chartData.padR - 76, Math.max(chartData.padL, chartData.lowestPt.x - 38))}
-                y={chartData.lowestPt.y + 7}
-                width="76"
-                height="17"
-                rx="4"
+                x={Math.min(chartData.svgW - chartData.padR - (chartData.isMobile ? 56 : 76), Math.max(chartData.padL, chartData.lowestPt.x - (chartData.isMobile ? 28 : 38)))}
+                y={chartData.lowestPt.y + (chartData.isMobile ? 5 : 7)}
+                width={chartData.isMobile ? 56 : 76}
+                height={chartData.isMobile ? 14 : 17}
+                rx={chartData.isMobile ? "3" : "4"}
                 fill="#fff1f2"
                 stroke="#f43f5e"
-                strokeWidth="1"
+                strokeWidth={chartData.isMobile ? "0.8" : "1"}
               />
               <text
-                x={Math.min(chartData.svgW - chartData.padR - 38, Math.max(chartData.padL + 38, chartData.lowestPt.x))}
-                y={chartData.lowestPt.y + 19}
+                x={Math.min(chartData.svgW - chartData.padR - (chartData.isMobile ? 28 : 38), Math.max(chartData.padL + (chartData.isMobile ? 28 : 38), chartData.lowestPt.x))}
+                y={chartData.lowestPt.y + (chartData.isMobile ? 15 : 19)}
                 textAnchor="middle"
-                className="text-[9.5px] font-mono font-bold fill-rose-800"
+                className={`${chartData.isMobile ? 'text-[8px]' : 'text-[9.5px]'} font-mono font-bold fill-rose-800`}
               >
                 ▼ L: {currencySymbol}{chartData.lowestPt.low.toFixed(1)}
               </text>

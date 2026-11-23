@@ -146,7 +146,7 @@ export default function ScrollManager() {
           type="button"
           onClick={scrollToTop}
           aria-label="Scroll to top of page"
-          className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 bg-white/95 hover:bg-white text-slate-800 hover:text-emerald-700 text-xs font-semibold px-3 py-2 rounded-full shadow-md border border-slate-200/90 flex items-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2"
+          className="fixed bottom-28 md:bottom-6 right-4 sm:right-6 z-40 bg-white/95 hover:bg-white text-slate-800 hover:text-emerald-700 text-xs font-semibold px-3 py-2 rounded-full shadow-md border border-slate-200/90 flex items-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2"
         >
           <ChevronUp className="w-4 h-4 text-emerald-600" />
           <span className="hidden sm:inline">Top</span>

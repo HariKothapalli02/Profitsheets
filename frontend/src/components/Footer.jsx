@@ -6,7 +6,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-white border-t border-slate-200/90 mt-auto font-sans text-slate-600">
-      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 pt-6 pb-36 md:py-6">
         
         {/* Main Single Row: Brand & Inline Navigation */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-100">
