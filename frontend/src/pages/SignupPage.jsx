@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   User, 
@@ -26,10 +26,19 @@ export default function SignupPage() {
 
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const redirectTarget = '/';
+  const rawRedirect = searchParams.get('redirect');
+  const redirectTarget =
+    rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+      ? rawRedirect
+      : '/';
+
+  useEffect(() => {
+    if (user) {
+      navigate(redirectTarget, { replace: true });
+    }
+  }, [user, redirectTarget, navigate]);
 
   if (user) {
-    navigate('/');
     return null;
   }
 
@@ -46,7 +55,7 @@ export default function SignupPage() {
 
     try {
       await register(name, email, password);
-      navigate('/');
+      navigate(redirectTarget, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Account creation failed. Please try a different email.');
     } finally {
@@ -176,7 +185,10 @@ export default function SignupPage() {
         {/* Bottom Switch to Sign In */}
         <div className="text-center pt-3 border-t border-slate-100 text-xs text-slate-500">
           Already have an account?{' '}
-          <Link to="/login" className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline">
+          <Link
+            to={rawRedirect ? `/login?redirect=${encodeURIComponent(redirectTarget)}` : '/login'}
+            className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
+          >
             Sign In here
           </Link>
         </div>

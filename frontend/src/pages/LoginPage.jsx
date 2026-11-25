@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  ShieldCheck, 
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  ShieldCheck,
   AlertCircle,
   Eye,
   EyeOff,
@@ -25,10 +25,19 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   const searchParams = new URLSearchParams(location.search);
-  const redirectTarget = '/';
+  const rawRedirect = searchParams.get('redirect');
+  const redirectTarget =
+    rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+      ? rawRedirect
+      : '/';
+
+  useEffect(() => {
+    if (user) {
+      navigate(redirectTarget, { replace: true });
+    }
+  }, [user, redirectTarget, navigate]);
 
   if (user) {
-    navigate('/');
     return null;
   }
 
@@ -39,7 +48,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      navigate('/');
+      navigate(redirectTarget, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password. Please try again.');
     } finally {
@@ -49,11 +58,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[75vh] flex flex-col items-center justify-center py-8 sm:py-12 px-4 font-sans">
-      
+
       {/* Top Back Navigation */}
       <div className="w-full max-w-md mb-4 flex items-center justify-between text-xs px-1">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="text-slate-500 hover:text-emerald-700 font-semibold flex items-center gap-1.5 transition-colors group"
         >
           <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -67,13 +76,13 @@ export default function LoginPage() {
 
       {/* Main Focused Authentication Card */}
       <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
-        
+
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-block pb-1">
-            <img 
-              src="/logo.png" 
-              alt="ProfitSheets" 
+            <img
+              src="/logo.png"
+              alt="ProfitSheets"
               className="h-9 w-auto mx-auto object-contain"
             />
           </Link>
@@ -93,7 +102,7 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          
+
           {/* Email Field */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -118,9 +127,9 @@ export default function LoginPage() {
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Password
               </label>
-              <a 
-                href="#" 
-                onClick={(e) => { e.preventDefault(); alert('For account assistance, please contact support via the Help page.'); }} 
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); alert('For account assistance, please contact support via the Help page.'); }}
                 className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
               >
                 Forgot password?
@@ -149,9 +158,9 @@ export default function LoginPage() {
           {/* Remember Me Option */}
           <div className="flex items-center justify-between text-xs pt-1">
             <label className="flex items-center space-x-2 cursor-pointer select-none">
-              <input 
-                type="checkbox" 
-                checked={rememberMe} 
+              <input
+                type="checkbox"
+                checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
               />
@@ -173,7 +182,10 @@ export default function LoginPage() {
         {/* Bottom Switch to Sign Up */}
         <div className="text-center pt-3 border-t border-slate-100 text-xs text-slate-500">
           Don't have an account yet?{' '}
-          <Link to="/signup" className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline">
+          <Link
+            to={rawRedirect ? `/signup?redirect=${encodeURIComponent(redirectTarget)}` : '/signup'}
+            className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
+          >
             Create Free Account
           </Link>
         </div>

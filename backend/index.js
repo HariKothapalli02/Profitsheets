@@ -729,9 +729,44 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
   const actionUpper = String(action).toUpperCase();
   const qty = Number(quantity);
   const unitPrice = Number(price);
+  if (!['BUY', 'SELL'].includes(actionUpper) || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unitPrice) || unitPrice <= 0) {
+    return res.status(400).json({ error: 'Invalid order action, quantity, or price' });
+  }
   const totalVal = Number((qty * unitPrice).toFixed(2));
   const isVirtualDemo = isDemo || broker.toLowerCase().includes('demo') || broker.toLowerCase().includes('virtual');
   const normalizedVariety = String(variety || 'REGULAR').toUpperCase();
+
+  // Validate virtual demo balance (BUY) and holdings (SELL) before creating order
+  let demoUser = null;
+  if (isVirtualDemo) {
+    demoUser = await mongoDao.findUserById(req.user.id);
+    if (!demoUser) {
+      return res.status(404).json({ error: 'User account not found' });
+    }
+    const currentBalance = Number(demoUser.walletBalance ?? 500000);
+    if (actionUpper === 'BUY' && totalVal > currentBalance) {
+      return res.status(400).json({
+        error: `Insufficient virtual cash balance (₹${currentBalance.toLocaleString('en-IN')}). Required: ₹${totalVal.toLocaleString('en-IN')}.`
+      });
+    }
+    if (actionUpper === 'SELL') {
+      const userOrders = await mongoDao.getOrders(req.user.id);
+      const targetSym = symbol.toUpperCase();
+      let ownedShares = 0;
+      userOrders
+        .filter((o) => o.symbol?.toUpperCase() === targetSym && (o.status === 'COMPLETE' || o.status === 'EXECUTED'))
+        .forEach((o) => {
+          const filled = Number(o.filledQuantity || o.quantity || 0);
+          if (o.action === 'BUY') ownedShares += filled;
+          else if (o.action === 'SELL') ownedShares = Math.max(0, ownedShares - filled);
+        });
+      if (qty > ownedShares) {
+        return res.status(400).json({
+          error: `Insufficient holdings to sell ${qty} shares of ${targetSym}. You currently hold ${ownedShares} shares.`
+        });
+      }
+    }
+  }
 
   // Generate unique Kite-compliant reference tag (Zerodha requires max 8 chars)
   const orderTag = (tag ? String(tag).trim().slice(0, 8) : ('P' + Date.now().toString(36).slice(-4) + Math.random().toString(36).substring(2, 5))).toUpperCase().slice(0, 8);
@@ -744,8 +779,8 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
   const statusMessage = isVirtualDemo
     ? 'Executed instantly via Virtual Demo Trading Engine'
     : (normalizedVariety === 'AMO'
-        ? 'Dispatched to Zerodha Kite as After Market Order (AMO). Awaiting market opening execution.'
-        : 'Dispatched to Zerodha Kite basket. Awaiting execution confirmation.');
+      ? 'Dispatched to Zerodha Kite as After Market Order (AMO). Awaiting market opening execution.'
+      : 'Dispatched to Zerodha Kite basket. Awaiting execution confirmation.');
 
   const orderObj = {
     id: 'ord_' + Date.now() + Math.random().toString(36).substring(2, 6),
@@ -777,17 +812,14 @@ app.post('/api/user/orders', authenticateToken, async (req, res) => {
   await mongoDao.createOrder(orderObj);
 
   // Update user virtual wallet balance ONLY if order is confirmed/executed (Virtual Demo)
-  if (balanceApplied) {
-    const user = await mongoDao.findUserById(req.user.id);
-    if (user) {
-      let currentBalance = user.walletBalance || 500000;
-      if (orderObj.action === 'BUY') {
-        currentBalance = Math.max(0, currentBalance - orderObj.total);
-      } else {
-        currentBalance += orderObj.total;
-      }
-      await mongoDao.updateUserBalance(req.user.id, Number(currentBalance.toFixed(2)));
+  if (balanceApplied && demoUser) {
+    let currentBalance = Number(demoUser.walletBalance ?? 500000);
+    if (orderObj.action === 'BUY') {
+      currentBalance = Math.max(0, currentBalance - orderObj.total);
+    } else {
+      currentBalance += orderObj.total;
     }
+    await mongoDao.updateUserBalance(req.user.id, Number(currentBalance.toFixed(2)));
   }
 
   res.status(201).json({

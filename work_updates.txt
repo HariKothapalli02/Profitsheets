@@ -688,7 +688,69 @@ AFFECTED FILES:
 - frontend/src/components/ScrollManager.jsx       (Offset scroll-to-top button to bottom-28 on mobile)
 - work_updates.txt                               (Appended update 26)
 ================================================================================
-End of Update Log.
+UPDATE 27: WATCHLIST AUTHENTICATION, MOBILE FOOTER ERGONOMICS & WIDESCREEN REALIGNMENT
+Date: November 24, 2026
+Status: Verified & Production Ready (0 Errors, Tested with Headless CDP)
+================================================================================
+
+1. WATCHLIST HTTP 401 UNAUTHORIZED RESOLUTION:
+   - Root Cause:
+     * `fetchWatchlist(token)` at `watchlist.js:24` fired remote GET requests to `/api/user/watchlist`
+       without validating if the token was a valid JWT string, or when stale/expired tokens (`ps_token`)
+       remained in `localStorage`.
+     * Backend `authenticateToken` middleware properly rejected unauthorized calls with 401, causing
+       DevTools network stack console error logs.
+   - Architectural Fix:
+     * Built `isValidAuthToken(token)` helper ensuring strict 3-part JWT validation (`xxx.yyy.zzz`).
+     * Implemented guest-first offline mode using `localStorage` (`profitsheets_watchlist`) so unauthenticated
+       visitors never trigger unnecessary remote network calls.
+     * Attached explicit `{ headers: { Authorization: 'Bearer ...' } }` to `watchlist.js` requests to avoid
+       header race conditions with Axios defaults.
+     * Added silent session expiry handling (`auth_expired` event) that cleans up expired tokens gracefully
+       without crashing or interrupting the user.
+     * Updated `CompanyPage.jsx` and `WatchlistPage.jsx` callers to only sync when `user && token` are active.
+
+2. MOBILE FOOTER SPACING & 208PX VOID ELIMINATION:
+   - Root Cause:
+     * Double-stacked bottom padding was placed *above* the footer (`pb-20` on `<main>` in `App.jsx` + `pb-32`
+       on `CompanyPage.jsx`), producing an awkward 208px blank void between the last content card and the footer.
+     * Meanwhile, the footer itself only had `py-6`, causing its copyright text and telemetry badges to get
+       clipped by the fixed mobile quick-trade and bottom navigation bars.
+   - Structural Fix:
+     * Removed `pb-20` from `<main>` in `App.jsx`.
+     * Reduced container bottom padding to clean `pb-6 md:pb-8` in `CompanyPage.jsx`, `HomePage.jsx`,
+       `WatchlistPage.jsx`, and `ProfilePage.jsx`.
+     * Moved mobile clearance directly to `Footer.jsx` with `pt-6 pb-36 md:py-6`, giving 144px of clearance
+       on mobile so the entire footer, copyright, and telemetry badges sit comfortably above the docked bars.
+     * Verified via headless Chrome CDP at 390x844 mobile viewport (`footer_mobile_verified.png`).
+
+3. ABOUT & SUPPORT PAGES WIDESCREEN ALIGNMENT (ZERO DEAD SPACE):
+   - Root Cause:
+     * `AboutPage.jsx` and `SupportPage.jsx` were constrained to `max-w-5xl mx-auto` (1024px), leaving ~350px-400px
+       of empty white gutters on the left and right sides on desktop monitors (1440px to 1920px wide).
+   - Responsive Redesign:
+     * Upgraded both pages to the platform standard: `w-full max-w-[1720px] mx-auto`.
+     * `AboutPage.jsx`: Expanded 6 capability pillars into a responsive multi-column grid
+       (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3`) and security section into a 4-card grid.
+     * `SupportPage.jsx`: Implemented an enterprise 2-column widescreen dashboard layout:
+       - Left (7 cols): Frequently Asked Questions with clean expandable accordions.
+       - Right (5 cols): Submit a Support Request form card docked neatly beside the FAQs.
+     * Verified via headless Chrome CDP at 1440x900 desktop viewport (`about_widescreen_verified.png`, `support_widescreen_verified.png`).
+
+AFFECTED FILES:
+- frontend/src/utils/watchlist.js                 (Strict JWT validation, guest-first offline mode, explicit headers)
+- frontend/src/context/AuthContext.jsx            (Session expiry listener, sanitized token initialization)
+- frontend/src/App.jsx                            (Removed redundant pb-20 from main viewport)
+- frontend/src/pages/CompanyPage.jsx              (Cleaned pb-32 to pb-6 md:pb-8, guarded watchlist fetch)
+- frontend/src/pages/WatchlistPage.jsx            (Guarded watchlist fetch, cleaned bottom padding)
+- frontend/src/pages/HomePage.jsx                 (Adjusted bottom padding)
+- frontend/src/pages/ProfilePage.jsx              (Adjusted bottom padding)
+- frontend/src/components/Footer.jsx              (Moved mobile clearance to pb-36 md:py-6)
+- frontend/src/pages/AboutPage.jsx                (Upgraded to max-w-[1720px] widescreen multi-column layout)
+- frontend/src/pages/SupportPage.jsx              (Upgraded to max-w-[1720px] widescreen 2-column layout)
+- work_updates.txt                                (Appended update 27)
+================================================================================
+
 
 
 

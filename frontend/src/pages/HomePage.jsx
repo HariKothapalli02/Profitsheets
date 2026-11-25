@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Search, 
-  Loader2, 
-  Building2, 
-  ChevronRight, 
-  Clock, 
-  History, 
+import {
+  Search,
+  Loader2,
+  Building2,
+  ChevronRight,
+  Clock,
+  History,
   X,
   TrendingUp,
   TrendingDown,
@@ -65,9 +65,9 @@ export default function HomePage() {
   // Keyboard shortcut listener: '/' or 'Cmd+K' to focus search
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) && 
-          document.activeElement !== searchInputRef.current &&
-          !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+      if ((e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) &&
+        document.activeElement !== searchInputRef.current &&
+        !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
@@ -121,7 +121,7 @@ export default function HomePage() {
         if (Array.isArray(fallbackRes.data)) {
           setIndices(fallbackRes.data);
         }
-      } catch (e) {}
+      } catch (e) { }
     } finally {
       setIndicesLoading(false);
     }
@@ -265,12 +265,12 @@ export default function HomePage() {
   };
 
   const handleKeyDown = (e) => {
-    if (results.length === 0) return;
-
     if (e.key === 'ArrowDown') {
+      if (results.length === 0) return;
       e.preventDefault();
       setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : 0));
     } else if (e.key === 'ArrowUp') {
+      if (results.length === 0) return;
       e.preventDefault();
       setSelectedIndex(prev => (prev > 0 ? prev - 1 : results.length - 1));
     } else if (e.key === 'Enter') {
@@ -368,7 +368,7 @@ export default function HomePage() {
 
   // Mini Trend Sparkline Generator
   const renderSparkline = (isUp) => {
-    const points = isUp 
+    const points = isUp
       ? "0,14 10,12 20,13 30,8 40,9 50,5 60,7 70,2 80,1"
       : "0,2 10,4 20,3 30,8 40,7 50,11 60,10 70,13 80,15";
     return (
@@ -387,10 +387,10 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4 sm:space-y-8 pb-6 sm:pb-8 font-sans text-slate-900">
-      
+
       {/* 1. TOP MARKET PULSE & BENCHMARK INDICES BAR */}
       <section className="reveal-init bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-5 shadow-xs space-y-3">
-        
+
         {/* Responsive Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 sm:pb-3 border-b border-slate-100">
           <div className="flex items-center justify-between sm:justify-start space-x-2">
@@ -413,25 +413,22 @@ export default function HomePage() {
           <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-xs sm:flex sm:space-x-1 sm:w-auto">
             <button
               onClick={() => setIndexTab('BENCHMARK')}
-              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${
-                indexTab === 'BENCHMARK' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${indexTab === 'BENCHMARK' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               Benchmark
             </button>
             <button
               onClick={() => setIndexTab('SECTORS')}
-              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${
-                indexTab === 'SECTORS' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${indexTab === 'SECTORS' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               Sector Heat
             </button>
             <button
               onClick={() => setIndexTab('GLOBAL')}
-              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${
-                indexTab === 'GLOBAL' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`py-1.5 px-2 sm:px-3 sm:py-1 rounded-lg text-center transition-all cursor-pointer text-[11px] sm:text-xs font-medium ${indexTab === 'GLOBAL' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               Global Macro
             </button>
@@ -449,7 +446,7 @@ export default function HomePage() {
               indices.map((idx, i) => {
                 const isPositive = (idx.changePercent || 0) >= 0;
                 return (
-                  <div 
+                  <div
                     key={i}
                     className="bg-slate-50/70 hover:bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/90 transition-all flex flex-col justify-between space-y-1.5 group"
                   >
@@ -471,9 +468,8 @@ export default function HomePage() {
                       <span className="text-xs sm:text-sm font-bold font-mono text-slate-900 tabular-nums">
                         {Number(idx.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      <span className={`text-[10px] sm:text-xs font-mono font-bold inline-flex items-center px-1.5 py-0.5 rounded ${
-                        isPositive ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/60' : 'text-rose-700 bg-rose-50 border border-rose-200/60'
-                      }`}>
+                      <span className={`text-[10px] sm:text-xs font-mono font-bold inline-flex items-center px-1.5 py-0.5 rounded ${isPositive ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/60' : 'text-rose-700 bg-rose-50 border border-rose-200/60'
+                        }`}>
                         {isPositive ? '+' : ''}{Number(idx.changePercent || 0).toFixed(2)}%
                       </span>
                     </div>
@@ -487,16 +483,15 @@ export default function HomePage() {
         {indexTab === 'SECTORS' && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
             {(marketPulse?.sectors || sectorData).slice(0, 4).map((sec, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 onClick={() => handleSelectCompany(sec.topStock)}
                 className="bg-slate-50/70 hover:bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-1.5 cursor-pointer transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800 truncate">{sec.name}</span>
-                  <span className={`font-mono text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded ${
-                    sec.isUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
-                  }`}>
+                  <span className={`font-mono text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded ${sec.isUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                    }`}>
                     {sec.isUp ? '+' : ''}{Number(sec.change).toFixed(2)}%
                   </span>
                 </div>
@@ -524,9 +519,8 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-baseline justify-between pt-1 border-t border-slate-100 font-mono">
                   <span className="text-xs sm:text-sm font-bold text-slate-900">{m.price}</span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                    m.isUp ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 bg-slate-100'
-                  }`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${m.isUp ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 bg-slate-100'
+                    }`}>
                     {m.displayChange}
                   </span>
                 </div>
@@ -556,11 +550,10 @@ export default function HomePage() {
 
       {/* Kite Status Notification Banner */}
       {kiteStatusNotice && (
-        <div className={`p-3.5 sm:p-4 rounded-xl border flex items-start justify-between shadow-xs ${
-          kiteStatusNotice.type === 'cancelled'
+        <div className={`p-3.5 sm:p-4 rounded-xl border flex items-start justify-between shadow-xs ${kiteStatusNotice.type === 'cancelled'
             ? 'bg-amber-50 border-amber-200 text-amber-900'
             : 'bg-emerald-50 border-emerald-200 text-emerald-900'
-        }`}>
+          }`}>
           <div>
             <h4 className="text-xs font-semibold">{kiteStatusNotice.title}</h4>
             <p className="text-xs mt-0.5 opacity-90">{kiteStatusNotice.message}</p>
@@ -581,7 +574,7 @@ export default function HomePage() {
         <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" style={{ animationDelay: '1.5s' }}></div>
 
         <div className="relative max-w-5xl mx-auto space-y-3.5 sm:space-y-5">
-          
+
           {/* Institutional Telemetry Pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50/90 border border-emerald-200/80 shadow-2xs">
             <span className="relative flex h-2 w-2">
@@ -652,9 +645,8 @@ export default function HomePage() {
                     key={idx}
                     onClick={() => handleSelectCompany(item.symbol)}
                     onMouseEnter={() => setSelectedIndex(idx)}
-                    className={`px-3.5 py-2.5 cursor-pointer flex items-center justify-between transition-colors ${
-                      selectedIndex === idx ? 'bg-slate-50 text-slate-900' : 'hover:bg-slate-50/70'
-                    }`}
+                    className={`px-3.5 py-2.5 cursor-pointer flex items-center justify-between transition-colors ${selectedIndex === idx ? 'bg-slate-50 text-slate-900' : 'hover:bg-slate-50/70'
+                      }`}
                   >
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 text-xs shrink-0 font-mono font-bold">
@@ -945,7 +937,7 @@ export default function HomePage() {
 
       {/* 4. LIVE MARKET MOVERS */}
       <section className="reveal-init bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-6 shadow-xs space-y-3.5">
-        
+
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 sm:pb-3 border-b border-slate-100">
           <div className="flex items-center justify-between sm:justify-start gap-3">
@@ -966,18 +958,16 @@ export default function HomePage() {
               <button
                 onClick={() => setStockViewMode('GRID')}
                 title="Card Grid view"
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  stockViewMode === 'GRID' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-400 hover:text-slate-700'
-                }`}
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${stockViewMode === 'GRID' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-400 hover:text-slate-700'
+                  }`}
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setStockViewMode('LIST')}
                 title="List view"
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  stockViewMode === 'LIST' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-400 hover:text-slate-700'
-                }`}
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${stockViewMode === 'LIST' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-400 hover:text-slate-700'
+                  }`}
               >
                 <List className="w-3.5 h-3.5" />
               </button>
@@ -988,43 +978,38 @@ export default function HomePage() {
           <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg text-xs overflow-x-auto no-scrollbar whitespace-nowrap shrink-0 max-w-full">
             <button
               onClick={() => setPopularTab('ALL')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium shrink-0 whitespace-nowrap ${
-                popularTab === 'ALL' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium shrink-0 whitespace-nowrap ${popularTab === 'ALL' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               All movers
             </button>
             <button
               onClick={() => setPopularTab('GAINERS')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium flex items-center gap-1 shrink-0 whitespace-nowrap ${
-                popularTab === 'GAINERS' ? 'bg-white text-emerald-700 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium flex items-center gap-1 shrink-0 whitespace-nowrap ${popularTab === 'GAINERS' ? 'bg-white text-emerald-700 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
               <span>Top gainers</span>
             </button>
             <button
               onClick={() => setPopularTab('LOSERS')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium flex items-center gap-1 shrink-0 whitespace-nowrap ${
-                popularTab === 'LOSERS' ? 'bg-white text-rose-700 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium flex items-center gap-1 shrink-0 whitespace-nowrap ${popularTab === 'LOSERS' ? 'bg-white text-rose-700 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               <TrendingDown className="w-3.5 h-3.5 text-rose-600" />
               <span>Pullbacks</span>
             </button>
             <button
               onClick={() => setPopularTab('VOLUME')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium shrink-0 whitespace-nowrap ${
-                popularTab === 'VOLUME' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium shrink-0 whitespace-nowrap ${popularTab === 'VOLUME' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               Volume spike
             </button>
             <button
               onClick={() => setPopularTab('BLUECHIPS')}
-              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium shrink-0 whitespace-nowrap ${
-                popularTab === 'BLUECHIPS' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors cursor-pointer text-xs font-medium shrink-0 whitespace-nowrap ${popularTab === 'BLUECHIPS' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               Nifty 50 core
             </button>
@@ -1070,9 +1055,8 @@ export default function HomePage() {
                       <span className="text-xs sm:text-sm font-bold text-slate-900 block tabular-nums">
                         {cardCurrencySymbol}{Number(stock.price || 0).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      <span className={`inline-flex items-center text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded mt-0.5 tabular-nums ${
-                        isPositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
-                      }`}>
+                      <span className={`inline-flex items-center text-[10px] sm:text-xs font-bold px-1.5 py-0.2 rounded mt-0.5 tabular-nums ${isPositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                        }`}>
                         {isPositive ? '+' : ''}{Number(stock.changePercent || 0).toFixed(2)}%
                       </span>
                     </div>
@@ -1114,9 +1098,8 @@ export default function HomePage() {
                             {stock.exchange || 'NSE'}
                           </span>
                         </div>
-                        <span className={`text-xs font-mono font-bold inline-flex items-center px-1.5 py-0.5 rounded ${
-                          isPositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
-                        }`}>
+                        <span className={`text-xs font-mono font-bold inline-flex items-center px-1.5 py-0.5 rounded ${isPositive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                          }`}>
                           {isPositive ? '+' : ''}{Number(stock.changePercent || 0).toFixed(2)}%
                         </span>
                       </div>
@@ -1140,7 +1123,7 @@ export default function HomePage() {
                       {/* Day's Range Visual Bar */}
                       <div className="space-y-1">
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden relative">
-                          <div 
+                          <div
                             className={`h-full rounded-full transition-all ${isPositive ? 'bg-emerald-500' : 'bg-rose-500'}`}
                             style={{ width: `${posPct}%` }}
                           />
@@ -1186,8 +1169,8 @@ export default function HomePage() {
         {/* 2-Col Grid on Mobile, 4-Col Grid on Desktop */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
           {(marketPulse?.sectors && marketPulse.sectors.length > 0 ? marketPulse.sectors : sectorData).map((sec, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               onClick={() => handleSelectCompany(sec.topStock)}
               className="bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer flex flex-col justify-between space-y-2 shadow-2xs hover:shadow-xs group"
             >
@@ -1195,16 +1178,15 @@ export default function HomePage() {
                 <span className="text-xs font-bold text-slate-900 truncate">
                   {sec.name}
                 </span>
-                <span className={`text-[10px] sm:text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                  sec.isUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
-                }`}>
+                <span className={`text-[10px] sm:text-xs font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${sec.isUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                  }`}>
                   {sec.isUp ? '+' : ''}{sec.change}%
                 </span>
               </div>
 
               {/* Visual Sector Strength Bar */}
               <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
-                <div 
+                <div
                   className={`h-full rounded-full ${sec.isUp ? 'bg-emerald-500' : 'bg-rose-500'}`}
                   style={{ width: `${Math.min(100, Math.max(20, Math.abs(parseFloat(sec.change) || 1) * 35))}%` }}
                 />

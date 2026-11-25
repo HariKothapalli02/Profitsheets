@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { 
   X, 
   ExternalLink, 
@@ -54,24 +55,78 @@ export default function OrderExecutionModal({
   initialAction = 'BUY',
   onTradeComplete 
 }) {
-  if (!isOpen || !stock) return null;
-
   const { user, fetchCurrentUser } = useAuth();
   const { kiteApiKey } = useKite();
   const marketSession = getIndianMarketSession();
 
   // 'BUY' | 'SELL'
   const [action, setAction] = useState(initialAction);
+  // 'CNC' | 'MIS'
+  const [product, setProduct] = useState('CNC');
+  // 'NSE' | 'BSE'
+  const [exchange, setExchange] = useState('NSE');
+  // 'MARKET' | 'LIMIT' | 'SL' | 'SL-M'
+  const [orderType, setOrderType] = useState('MARKET');
+  // Quantity
+  const [quantity, setQuantity] = useState(1);
+  // Limit Price (editable if not MARKET)
+  const currentPrice = Number(stock?.currentPrice || stock?.price || 100);
+  const [customPrice, setCustomPrice] = useState(currentPrice);
 
-  // Sync action with initialAction and default executionMode to Zerodha Kite whenever modal opens
+  // 'ZERODHA' | 'DEMO' - Defaults to Zerodha Kite as requested
+  const [executionMode, setExecutionMode] = useState('ZERODHA');
+
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
+  // Order tracking stage state (for Kite orders)
+  const [trackedOrder, setTrackedOrder] = useState(null);
+  const [copiedTag, setCopiedTag] = useState(false);
+  const [manualKiteOrderId, setManualKiteOrderId] = useState('');
+  const [manualFillPrice, setManualFillPrice] = useState(currentPrice);
+  const [manualFillQty, setManualFillQty] = useState(1);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const demoCloseTimerRef = useRef(null);
+
+  const isIndian = Boolean(
+    stock?.currency === 'INR' ||
+    stock?.exchange === 'NSE' ||
+    stock?.exchange === 'BSE' ||
+    (!['USD'].includes(stock?.currency) && !['NMS', 'NYQ', 'NGM', 'NASDAQ', 'NYSE'].includes(stock?.exchange?.toUpperCase()) && !['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock?.symbol?.toUpperCase()))
+  );
+  const currencySymbol = stock?.currencySymbol || (isIndian ? '₹' : '$');
+  const isUSD = currencySymbol === '$';
+
+  // Reset all modal state cleanly whenever opened or stock changes
   useEffect(() => {
-    if (initialAction) {
-      setAction(initialAction);
+    if (isOpen && stock) {
+      const freshPrice = Number(stock.currentPrice || stock.price || 100);
+      const stockIsIndian = Boolean(
+        stock.currency === 'INR' ||
+        stock.exchange === 'NSE' ||
+        stock.exchange === 'BSE' ||
+        (!['USD'].includes(stock.currency) && !['NMS', 'NYQ', 'NGM', 'NASDAQ', 'NYSE'].includes(stock.exchange?.toUpperCase()) && !['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock.symbol?.toUpperCase()))
+      );
+      setAction(initialAction || 'BUY');
+      setExecutionMode(stockIsIndian ? 'ZERODHA' : 'DEMO');
+      setProduct('CNC');
+      setExchange(stockIsIndian ? (stock.exchange === 'BSE' ? 'BSE' : 'NSE') : (stock.exchange || 'NASDAQ'));
+      setOrderType('MARKET');
+      setQuantity(1);
+      setCustomPrice(freshPrice);
+      setFeedback(null);
+      setTrackedOrder(null);
+      setManualKiteOrderId('');
+      setManualFillPrice(freshPrice);
+      setManualFillQty(1);
     }
-    if (isOpen) {
-      setExecutionMode('ZERODHA');
-    }
-  }, [initialAction, isOpen]);
+    return () => {
+      if (demoCloseTimerRef.current) {
+        clearTimeout(demoCloseTimerRef.current);
+        demoCloseTimerRef.current = null;
+      }
+    };
+  }, [initialAction, isOpen, stock?.symbol]);
 
   // Lock body & document scroll when modal is active so dark overlay covers full viewport edge-to-edge
   useEffect(() => {
@@ -87,35 +142,67 @@ export default function OrderExecutionModal({
       document.documentElement.style.overflow = '';
     };
   }, [isOpen]);
-  // 'CNC' | 'MIS'
-  const [product, setProduct] = useState('CNC');
-  // 'NSE' | 'BSE'
-  const [exchange, setExchange] = useState('NSE');
-  // 'MARKET' | 'LIMIT' | 'SL' | 'SL-M'
-  const [orderType, setOrderType] = useState('MARKET');
-  // Quantity
-  const [quantity, setQuantity] = useState(1);
-  // Limit Price (editable if not MARKET)
-  const currentPrice = Number(stock.currentPrice || stock.price || 100);
-  const [customPrice, setCustomPrice] = useState(currentPrice);
 
-  // 'ZERODHA' | 'DEMO' - Defaults to Zerodha Kite as requested
-  const [executionMode, setExecutionMode] = useState('ZERODHA');
+  // Live cross-tab & backend sync while a Kite order is PENDING
+  useEffect(() => {
+    if (!isOpen || !trackedOrder?.id || trackedOrder.status !== 'PENDING') return;
 
-  const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState(null);
+    let cancelled = false;
+    const applyUpdatedOrder = (updated) => {
+      if (cancelled || !updated || updated.id !== trackedOrder.id || updated.status === 'PENDING') return;
+      setTrackedOrder(updated);
+      fetchCurrentUser();
+      if (onTradeComplete) onTradeComplete();
 
-  const isIndian = stock?.currency === 'INR' || stock?.exchange === 'NSE' || stock?.exchange === 'BSE' || (!['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'AMZN', 'META'].includes(stock?.symbol?.toUpperCase()));
-  const currencySymbol = stock?.currencySymbol || (isIndian ? '₹' : '$');
-  const isUSD = currencySymbol === '$';
+      if (updated.status === 'CANCELLED' || updated.status === 'REJECTED') {
+        setFeedback({
+          type: 'error',
+          msg: updated.statusMessage || `Order ${updated.status.toLowerCase()} on Zerodha Kite. No funds were debited.`
+        });
+      } else if (updated.status === 'COMPLETE') {
+        setFeedback({
+          type: 'success',
+          msg: '✓ Order execution confirmed on Zerodha Kite!'
+        });
+      }
+    };
 
-  // Order tracking stage state (for Kite orders)
-  const [trackedOrder, setTrackedOrder] = useState(null);
-  const [copiedTag, setCopiedTag] = useState(false);
-  const [manualKiteOrderId, setManualKiteOrderId] = useState('');
-  const [manualFillPrice, setManualFillPrice] = useState(currentPrice);
-  const [manualFillQty, setManualFillQty] = useState(1);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const pollStatus = async () => {
+      try {
+        const res = await axios.get(`/api/user/orders/${trackedOrder.id}/track`);
+        if (res.data?.order) applyUpdatedOrder(res.data.order);
+      } catch (_) {}
+    };
+
+    const intervalId = setInterval(pollStatus, 2500);
+
+    let channel = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      channel = new BroadcastChannel('ps_order_updates');
+      channel.onmessage = (event) => {
+        if (event.data?.order) applyUpdatedOrder(event.data.order);
+      };
+    }
+
+    const handleStorage = (e) => {
+      if (e.key === 'ps_order_update' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed?.order) applyUpdatedOrder(parsed.order);
+        } catch (_) {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [isOpen, trackedOrder?.id, trackedOrder?.status]);
+
+  if (!isOpen || !stock) return null;
 
   const priceToUse = orderType === 'MARKET' ? currentPrice : Number(customPrice || currentPrice);
   const estimatedOrderValue = (quantity * priceToUse).toFixed(2);
@@ -235,9 +322,9 @@ export default function OrderExecutionModal({
           msg: `Demo ${action} order for ${quantity} shares of ${stock.symbol} executed with Virtual Cash!`
         });
 
-        setTimeout(() => {
+        demoCloseTimerRef.current = setTimeout(() => {
           onClose();
-        }, 1500);
+        }, 2500);
       } catch (err) {
         console.error('Demo trade error:', err);
         setFeedback({
@@ -392,7 +479,15 @@ export default function OrderExecutionModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Bar */}
-        <div className={`${trackedOrder ? 'bg-amber-600' : themeBgColor} text-white px-5 pt-3 pb-3.5 sm:py-3.5 flex flex-col justify-center rounded-t-3xl sm:rounded-t-2xl transition-colors duration-200 select-none`}>
+        <div className={`${
+          trackedOrder
+            ? trackedOrder.status === 'COMPLETE'
+              ? 'bg-[#00965e]'
+              : trackedOrder.status === 'CANCELLED' || trackedOrder.status === 'REJECTED'
+              ? 'bg-rose-600'
+              : 'bg-amber-600'
+            : themeBgColor
+        } text-white px-5 pt-3 pb-3.5 sm:py-3.5 flex flex-col justify-center rounded-t-3xl sm:rounded-t-2xl transition-colors duration-200 select-none`}>
           {/* Mobile Sheet Handle Indicator */}
           <div className="w-full flex items-center justify-center pb-2 sm:hidden cursor-pointer" onClick={onClose}>
             <div className="w-10 h-1 bg-white/35 rounded-full" />
@@ -594,6 +689,80 @@ export default function OrderExecutionModal({
             /* VIEW B: CLEAN FOCUSED ORDER CONFIGURATION */
             /* ============================================================== */
             <>
+              {/* Action Toggle (BUY / SELL) & Exchange / Product */}
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    SIDE
+                  </label>
+                  <div className="grid grid-cols-2 p-0.5 bg-slate-100 rounded-lg text-[11px] font-bold">
+                    {['BUY', 'SELL'].map((side) => (
+                      <button
+                        key={side}
+                        type="button"
+                        onClick={() => { setAction(side); setFeedback(null); }}
+                        className={`py-1.5 rounded-md transition-all cursor-pointer ${
+                          action === side
+                            ? side === 'BUY'
+                              ? 'bg-[#00965e] text-white shadow-xs'
+                              : 'bg-[#df1d44] text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {side}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    EXCHANGE
+                  </label>
+                  {isIndian ? (
+                    <div className="grid grid-cols-2 p-0.5 bg-slate-100 rounded-lg text-[11px] font-bold">
+                      {['NSE', 'BSE'].map((ex) => (
+                        <button
+                          key={ex}
+                          type="button"
+                          onClick={() => setExchange(ex)}
+                          className={`py-1.5 rounded-md transition-all cursor-pointer ${
+                            exchange === ex ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-1.5 px-2 bg-slate-100 rounded-lg text-[11px] font-bold text-slate-700 text-center font-mono">
+                      {exchange || 'NASDAQ'}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    PRODUCT
+                  </label>
+                  <div className="grid grid-cols-2 p-0.5 bg-slate-100 rounded-lg text-[11px] font-bold">
+                    {['CNC', 'MIS'].map((prod) => (
+                      <button
+                        key={prod}
+                        type="button"
+                        onClick={() => setProduct(prod)}
+                        title={prod === 'CNC' ? 'Delivery (Long-Term)' : 'Intraday (Same Day)'}
+                        className={`py-1.5 rounded-md transition-all cursor-pointer ${
+                          product === prod ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {prod}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* Order Type: MARKET vs LIMIT */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -700,17 +869,26 @@ export default function OrderExecutionModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setExecutionMode('ZERODHA')}
-                    className={`py-2 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      executionMode === 'ZERODHA'
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                    disabled={!isIndian}
+                    onClick={() => isIndian && setExecutionMode('ZERODHA')}
+                    title={!isIndian ? 'Zerodha Kite only supports Indian NSE/BSE stocks' : 'Execute via Zerodha Kite'}
+                    className={`py-2 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                      !isIndian
+                        ? 'text-slate-400 bg-transparent cursor-not-allowed opacity-60'
+                        : executionMode === 'ZERODHA'
+                        ? 'bg-slate-900 text-white shadow-xs cursor-pointer'
+                        : 'text-slate-600 hover:text-slate-900 bg-transparent cursor-pointer'
                     }`}
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>Zerodha Kite</span>
                   </button>
                 </div>
+                {!isIndian && (
+                  <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5 font-medium">
+                    US equities ({stock.symbol}) are not traded on NSE/BSE. Use Demo (Virtual Cash) mode to paper-trade this stock.
+                  </p>
+                )}
               </div>
 
               {/* Market Status & AMO Auto-Detection Banner */}
@@ -766,14 +944,23 @@ export default function OrderExecutionModal({
 
               {/* Feedback message if any */}
               {feedback && (
-                <div className={`p-2.5 rounded-lg text-xs font-semibold text-center ${
+                <div className={`p-2.5 rounded-lg text-xs font-semibold text-center space-y-1.5 ${
                   feedback.type === 'success' 
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
                     : feedback.type === 'error'
                     ? 'bg-rose-50 text-rose-800 border border-rose-200'
                     : 'bg-sky-50 text-sky-800 border border-sky-200'
                 }`}>
-                  {feedback.msg}
+                  <div>{feedback.msg}</div>
+                  {feedback.type === 'success' && (
+                    <Link
+                      to="/orders"
+                      onClick={onClose}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline"
+                    >
+                      <span>View Order in Journal →</span>
+                    </Link>
+                  )}
                 </div>
               )}
 

@@ -58,16 +58,31 @@ export default function OrdersPage({ onGoToMarkets }) {
     }
   }, []);
 
+  const broadcastOrderUpdate = (updatedOrder) => {
+    if (!updatedOrder) return;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const ch = new BroadcastChannel('ps_order_updates');
+        ch.postMessage({ order: updatedOrder });
+        ch.close();
+      }
+      localStorage.setItem('ps_order_update', JSON.stringify({ order: updatedOrder, ts: Date.now() }));
+    } catch (_) {}
+  };
+
   const autoCancelPendingOrder = async () => {
     try {
       const res = await axios.get('/api/user/orders');
       const orderList = res.data.orders || [];
-      const pendingOrder = orderList.find(o => o.status === 'PENDING' || o.status === 'OPEN');
+      const pendingOrder = orderList.find(
+        (o) => !isOrderVirtual(o) && (o.status === 'PENDING' || o.status === 'OPEN')
+      );
       if (pendingOrder) {
-        await axios.patch(`/api/user/orders/${pendingOrder.id}/status`, {
+        const patchRes = await axios.patch(`/api/user/orders/${pendingOrder.id}/status`, {
           status: 'CANCELLED',
           statusMessage: 'Order cancelled on Zerodha Kite basket screen by user'
         });
+        broadcastOrderUpdate(patchRes.data.order);
         await fetchOrders();
       }
     } catch (e) {
@@ -111,12 +126,13 @@ export default function OrdersPage({ onGoToMarkets }) {
     if (!selectedOrderToConfirm) return;
     setConfirming(true);
     try {
-      await axios.patch(`/api/user/orders/${selectedOrderToConfirm.id}/status`, {
+      const patchRes = await axios.patch(`/api/user/orders/${selectedOrderToConfirm.id}/status`, {
         status: 'COMPLETE',
         executedPrice: Number(confirmPrice) || selectedOrderToConfirm.price,
         kiteOrderId: confirmKiteOrderId.trim() || undefined,
         statusMessage: 'Execution confirmed in Kite by user'
       });
+      broadcastOrderUpdate(patchRes.data.order);
       await fetchCurrentUser();
       await fetchOrders();
       setSelectedOrderToConfirm(null);
@@ -130,10 +146,11 @@ export default function OrdersPage({ onGoToMarkets }) {
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Mark this Kite order as CANCELLED in database?')) return;
     try {
-      await axios.patch(`/api/user/orders/${orderId}/status`, {
+      const patchRes = await axios.patch(`/api/user/orders/${orderId}/status`, {
         status: 'CANCELLED',
         statusMessage: 'Order cancelled by client'
       });
+      broadcastOrderUpdate(patchRes.data.order);
       await fetchOrders();
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to cancel order');

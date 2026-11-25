@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { 
-  Search, 
-  User, 
-  ChevronDown, 
-  LogOut, 
-  Building2, 
+import {
+  Search,
+  User,
+  ChevronDown,
+  LogOut,
+  Building2,
   ChevronRight,
   Loader2,
   Wallet,
@@ -35,6 +35,7 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState([]);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -82,6 +83,7 @@ export default function Navbar() {
       try {
         const res = await axios.get(`/api/stocks/search?q=${encodeURIComponent(searchQuery)}`);
         setSearchResults(res.data || []);
+        setSelectedIndex(-1);
       } catch (e) {
         console.warn('Navbar search error:', e);
       } finally {
@@ -97,44 +99,68 @@ export default function Navbar() {
     navigate(`/company/${item.symbol}`);
     setSearchQuery('');
     setSearchResults([]);
+    setSelectedIndex(-1);
     setIsFocused(false);
     setMobileMenuOpen(false);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      if (searchResults.length === 0) return;
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < searchResults.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      if (searchResults.length === 0) return;
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : searchResults.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && searchResults[selectedIndex]) {
+        handleSelectStock(searchResults[selectedIndex]);
+      } else if (searchResults.length > 0) {
+        handleSelectStock(searchResults[0]);
+      } else if (searchQuery.trim()) {
+        handleSelectStock({ symbol: searchQuery.trim().toUpperCase() });
+      }
+    } else if (e.key === 'Escape') {
+      setIsFocused(false);
+    }
   };
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
       <div className="w-full max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 xl:px-10">
         <div className="flex items-center justify-between h-14 gap-3">
-          
+
           {/* Left: Logo & Desktop Navigation */}
           <div className="flex items-center space-x-6 lg:space-x-8">
             {/* ProfitSheets Logo */}
             <Link to="/" className="flex items-center group shrink-0 py-1">
-              <img 
-                src="/logo.png" 
-                alt="ProfitSheets - investments made simple" 
+              <img
+                src="/logo.png"
+                alt="ProfitSheets - investments made simple"
                 className="h-8 sm:h-9 w-auto object-contain hover:opacity-95 transition-opacity"
               />
             </Link>
 
             {/* Desktop Nav Menu Items */}
             <nav className="hidden md:flex items-center space-x-6 text-xs font-bold uppercase tracking-wider text-slate-600">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className={`hover:text-slate-900 transition-colors ${location.pathname === '/' ? 'text-emerald-600 font-extrabold' : ''}`}
               >
                 HOME
               </Link>
 
-              <Link 
-                to="/company/RELIANCE" 
+              <Link
+                to="/company/RELIANCE"
                 className={`hover:text-slate-900 transition-colors ${location.pathname.startsWith('/company') ? 'text-emerald-600 font-extrabold' : ''}`}
               >
                 SCREENS
               </Link>
 
-              <Link 
-                to="/watchlist" 
+              <Link
+                to="/watchlist"
                 className={`hover:text-slate-900 transition-colors flex items-center gap-1.5 ${location.pathname === '/watchlist' ? 'text-emerald-600 font-extrabold' : ''}`}
               >
                 <span>WATCHLIST</span>
@@ -149,7 +175,7 @@ export default function Navbar() {
 
           {/* Right: Search Bar, Auth Actions & Mobile Hamburger */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            
+
             {/* Desktop Search Bar (shown on subpages) */}
             {!isHomePage && (
               <div className="relative hidden sm:block w-56 lg:w-72" ref={navSearchRef}>
@@ -166,6 +192,7 @@ export default function Navbar() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsFocused(true)}
+                    onKeyDown={handleSearchKeyDown}
                     placeholder="Search company (e.g. RELIANCE, TCS)..."
                     className="w-full py-1.5 pr-3 text-xs text-slate-800 placeholder-slate-400 bg-transparent focus:outline-none font-sans"
                   />
@@ -178,7 +205,8 @@ export default function Navbar() {
                       <div
                         key={idx}
                         onClick={() => handleSelectStock(item)}
-                        className="px-3 py-2 cursor-pointer hover:bg-slate-50 flex items-center justify-between text-left"
+                        className={`px-3 py-2 cursor-pointer flex items-center justify-between text-left ${idx === selectedIndex ? 'bg-emerald-50' : 'hover:bg-slate-50'
+                          }`}
                       >
                         <div>
                           <div className="text-xs font-bold text-slate-900 leading-tight">
@@ -317,7 +345,7 @@ export default function Navbar() {
       {/* Mobile Slide-Down Drawer (Thorough Mobile Responsiveness) */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-4 shadow-xl animate-in slide-in-from-top-2 duration-150">
-          
+
           {/* Mobile Search Bar */}
           <div className="relative">
             <div className="relative flex items-center bg-slate-50 rounded-lg border border-slate-300 focus-within:ring-2 focus-within:ring-emerald-500">
@@ -326,6 +354,7 @@ export default function Navbar() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search stocks (e.g. RELIANCE, TCS)..."
                 className="w-full py-2 pl-2 pr-3 text-xs text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none"
               />
